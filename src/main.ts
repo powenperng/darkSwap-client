@@ -1,7 +1,10 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
-import WebSocket from 'ws';
+import { WebSocket } from 'ws';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+
 
 dotenv.config();
 
@@ -9,12 +12,25 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
 
-  await app.listen(3000);
-  startWebSocket();
+  // Swagger config
+  const config = new DocumentBuilder()
+    .setTitle('API doc')
+    .setDescription('API description')
+    .setVersion('1.0')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
+  await app.listen(3001);
+  // startWebSocket();
 }
 
 function startWebSocket() {
-  const ws = new WebSocket('ws://booknode-server-url');
+  const booknodeUrl = process.env.BOOKNODE_URL;
+  if (!booknodeUrl) {
+    throw new Error('BOOKNODE_URL is not set');
+  }
+  const ws = new WebSocket(booknodeUrl);
 
   ws.on('open', () => {
     console.log('Connected to BookNode server');

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import * as ethers from 'ethers';
 
 @Injectable()
 export class WalletService {
@@ -13,17 +14,16 @@ export class WalletService {
     const walletsArray = walletsConfig.split(',').map(wallet => wallet.trim());
     const wallets: { [key: string]: string } = {};
 
-    walletsArray.forEach(wallet => {
-      const [name, privateKey] = wallet.split(':');
-      if (name && privateKey) {
-        wallets[name] = privateKey;
-      }
+    walletsArray.forEach(privateKey => {
+      const wallet = new ethers.Wallet(privateKey);
+      const address = wallet.address;
+      wallets[address] = privateKey;
     });
 
     return wallets;
   }
 
-  getPrivateKey(walletName: string): string {
-    return this.wallets[walletName];
+  getPrivateKey(walletAddress: string): string {
+    return this.wallets[walletAddress];
   }
 }
