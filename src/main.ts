@@ -4,13 +4,16 @@ import { AppModule } from './app.module';
 import { WebSocket } from 'ws';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { ConfigLoader } from './utils/configUtil';
-(global as any).crypto = crypto;
 
 
 async function bootstrap() {
   ConfigLoader.getInstance();
+
+  (global as any).crypto = {
+    getRandomValues: (buffer: Uint8Array) => crypto.randomFillSync(buffer),
+  };
 
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');

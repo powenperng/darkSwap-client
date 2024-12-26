@@ -9,11 +9,37 @@ export class DarkpoolContext {
     walletAddress: string
     darkPool: DarkPool
     signature: string
-  
-  constructor(chain: number, wallet: string) {
-    this.chainId = chain
-    this.walletAddress = wallet
-    this.signer = RpcManager.getInstance().getSigner(wallet, chain)
-    this.darkPool = getDarkPool(chain, this.signer)
-  }
+
+    private constructor(chain: number, wallet: string, signer: Signer, darkPool: DarkPool, signature: string) {
+        this.chainId = chain
+        this.walletAddress = wallet
+        this.signer = signer
+        this.darkPool = darkPool
+        this.signature = signature
+    }
+
+    static async createDarkpoolContext(chain: number, wallet: string) {
+        const signer = RpcManager.getInstance().getSigner(wallet, chain)
+        const darkPool = getDarkPool(chain, signer)
+
+        const domain = {
+            name: "SingularityDarkpoolClientServer",
+            version: "1",
+        };
+
+        const types = {
+            Message: [
+                { name: "wallet", type: "string" },
+                { name: "content", type: "string" },
+            ],
+        };
+
+        const value = {
+            wallet: wallet,
+            content: "Please sign this message to create your own Zero Knowledge proof key-pair. This doesn't cost you anything and is free of any gas fees.",
+        };
+
+        const signature = await signer.signTypedData(domain, types, value);
+        return new DarkpoolContext(chain, wallet, signer, darkPool, signature)
+    }
 } 

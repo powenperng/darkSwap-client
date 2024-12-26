@@ -9,6 +9,7 @@ export class BasicService {
     const depositService = new DepositService(darkPoolContext.darkPool);
     const { context, outNotes } = await depositService.prepare(asset.address, amount, darkPoolContext.walletAddress, darkPoolContext.signature);
     //FIXME save outNotes to db
+    await depositService.generateProof(context);
     const tx = await depositService.execute(context);
     //FIXME save tx to db and update outNotes status
   }

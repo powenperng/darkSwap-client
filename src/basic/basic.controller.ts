@@ -11,10 +11,12 @@ export class BasicController {
 
   @Post('deposit')
   async deposit(@Body() depositDto: DepositDto) {
-    const context = new DarkpoolContext(depositDto.chain, depositDto.wallet)
+    const context = await DarkpoolContext.createDarkpoolContext(depositDto.chain, depositDto.wallet)
     const token = await TokenService.getTokenByChainId(depositDto.chain, depositDto.asset);
     const amount = ethers.parseUnits(depositDto.amount.toString(), token.decimals);
     await this.basicService.deposit(context, token, amount);
+    
+    return { message: 'success' };
   }
 
   @Post('withdraw')
