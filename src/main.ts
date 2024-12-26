@@ -5,10 +5,15 @@ import * as dotenv from 'dotenv';
 import { WebSocket } from 'ws';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
+import crypto from 'crypto';
+import { ConfigLoader } from './utils/configUtil';
+(global as any).crypto = crypto;
 
 dotenv.config();
 
 async function bootstrap() {
+  ConfigLoader.getInstance();
+
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
 

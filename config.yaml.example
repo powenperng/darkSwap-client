@@ -1,0 +1,7 @@
+wallets:
+  - name: "wallet1"
+    address: "0x1234567890abcdef"
+    privateKey: "0x1234567890abcdef"
+  - name: "wallet2"
+    address: "0x1234567890abcdef"
+    privateKey: "0x1234567890abcdef"
