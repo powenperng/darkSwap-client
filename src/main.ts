@@ -28,11 +28,11 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   await app.listen(3001);
-  // startWebSocket();
+  startWebSocket();
 }
 
 function startWebSocket() {
-  const booknodeUrl = process.env.BOOKNODE_URL;
+  const booknodeUrl = process.env.BOOKNODE_SOCKET_URL;
   if (!booknodeUrl) {
     throw new Error('BOOKNODE_URL is not set');
   }
@@ -42,10 +42,6 @@ function startWebSocket() {
     console.log('Connected to BookNode server');
   });
 
-  ws.on('message', (data) => {
-    console.log('Received data from BookNode:', data);
-  });
-
   ws.on('error', (error) => {
     console.error('WebSocket error:', error);
   });
@@ -53,6 +49,11 @@ function startWebSocket() {
   ws.on('close', () => {
     console.log('Disconnected from BookNode server');
   });
+
+  ws.on('message', (data) => {
+    // Handle incoming messages
+  });
+
 }
 
 bootstrap();

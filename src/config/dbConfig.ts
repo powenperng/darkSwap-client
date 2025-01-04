@@ -6,7 +6,7 @@ export default{
         //type: 0: note, 1: partial note
         `CREATE TABLE IF NOT EXISTS NOTES (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            chain INTERGER NOT NULL, 
+            chainId INTERGER NOT NULL, 
             publicKey TEXT NOT NULL, 
             wallet TEXT NOT NULL,
             type  INTERGER NOT NULL,
@@ -21,12 +21,12 @@ export default{
             );`,
             
         `CREATE TABLE IF NOT EXISTS ASSET_PAIRS (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT PRIMARY KEY,
             assetA TEXT NOT NULL,
             assetB TEXT NOT NULL,
             symbolA TEXT NOT NULL,
             symbolB TEXT NOT NULL,
-            chain INTERGER NOT NULL
+            chainId INTERGER NOT NULL
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON INSERT,
             updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE
             );`,
@@ -50,7 +50,7 @@ export default{
         `CREATE TABLE IF NOT EXISTS ORDERS (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             orderId TEXT NOT NULL,
-            chain INTERGER NOT NULL, 
+            chainId INTERGER NOT NULL, 
             assetPairId TEXT NOT NULL,
             orderDirection INTERGER NOT NULL,
             orderType INTERGER NOT NULL,
@@ -64,7 +64,7 @@ export default{
             wallet TEXT NOT NULL,
             publicKey TEXT NOT NULL,
             noteCommitment TEXT NOT NULL,
-            signature TEXT NOT NULL
+            nullifier TEXT NOT NULL,
             txHashCreated TEXT,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON INSERT,
             updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE);`,

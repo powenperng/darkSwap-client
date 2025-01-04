@@ -1,9 +1,10 @@
-import { BaseDto } from '../common/dto/base.dto';
+import { HexString } from 'ethers/lib.commonjs/utils/data';
+import { BaseDto } from '../../common/dto/base.dto';
 
 export class OrderDto extends BaseDto {
     id: number;
     orderId: string;
-    assetPairId: number;
+    assetPairId: string;
     orderDirection: number;
     orderType: number;
     timeInForce: number;
@@ -15,6 +16,6 @@ export class OrderDto extends BaseDto {
     status: number;
     publicKey: string;
     noteCommitment: bigint;
+    nullifier: bigint;
     txHashCreated: string;
-    signature: string;
 } 

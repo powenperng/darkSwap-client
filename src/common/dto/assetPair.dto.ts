@@ -5,5 +5,5 @@ export class AssetPairDto {
     assetB: string;
     symbolA: string;
     symbolB: string;
-    chain: number;
+    chainId: number;
   } 

@@ -1,4 +1,4 @@
 export class BaseDto {
-  chain: number;
+  chainId: number;
   wallet: string;
 } 

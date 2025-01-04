@@ -9,3 +9,6 @@ services:
       - ./data:/data  
     environment:
       - DB_FILE_PATH = /data/db.sqlite3
+      - BOOKNODE_SOCKET_URL =
+      - BOOKNODE_API_URL =
+      - BOOKNODE_API_KEY =

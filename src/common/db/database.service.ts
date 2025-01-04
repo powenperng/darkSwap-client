@@ -2,7 +2,7 @@ import { Database } from 'better-sqlite3';
 import config from '../../config/dbConfig';
 import { NoteDto } from '../dto/note.dto';
 import { AssetPairDto } from '../dto/assetPair.dto';
-import { OrderDto } from '../../orders/order.dto';
+import { OrderDto } from '../../orders/dto/order.dto';
 
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -28,7 +28,7 @@ export class DatabaseService {
 
   // Note operations
   public async addNote(
-      chain: number, 
+      chainId: number, 
       publicKey: string, 
       walletAddress: string, 
       type: number, 
@@ -39,9 +39,9 @@ export class DatabaseService {
       status: number,
       txHashCreated: string): Promise<number> {
     const query = `INSERT INTO NOTES (
-      chain, publicKey, wallet, type, noteCommitment, rho, asset, amount, status, txHashCreated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      chainId, publicKey, wallet, type, noteCommitment, rho, asset, amount, status, txHashCreated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const stmt = this.db.prepare(query);
-    const result = stmt.run(chain, publicKey, walletAddress, type, noteCommitment, rho, asset, amount, status, txHashCreated);
+    const result = stmt.run(chainId, publicKey, walletAddress, type, noteCommitment, rho, asset, amount, status, txHashCreated);
     return result.lastInsertRowid;
     }
 
@@ -52,7 +52,7 @@ export class DatabaseService {
 
     const notes = rows.map(row => ({
       id: row.id,
-      chain: row.chain,
+      chainId: row.chainId,
       publicKey: row.publicKey,
       wallet: row.wallet,
       type: row.type,
@@ -67,14 +67,14 @@ export class DatabaseService {
     return notes;
   }
 
-  public async getNotesByAsset(asset: string, chain: number): Promise<NoteDto[]> {
-    const query = `SELECT * FROM NOTES WHERE asset = ? AND chain = ? AND status = 0 ORDER BY amount DESC`;
+  public async getNotesByAsset(asset: string, chainId: number): Promise<NoteDto[]> {
+    const query = `SELECT * FROM NOTES WHERE asset = ? AND chainId = ? AND status = 0 ORDER BY amount DESC`;
     const stmt = this.db.prepare(query);
-    const rows = stmt.all(asset, chain);
+    const rows = stmt.all(asset, chainId) as NoteDto[];
 
     const notes = rows.map(row => ({
       id: row.id,
-      chain: row.chain,
+      chainId: row.chainId,
       publicKey: row.publicKey,
       wallet: row.wallet,
       type: row.type,
@@ -89,14 +89,34 @@ export class DatabaseService {
     return notes;
   }
 
-  public async getNoteByAssetAndAmount(asset: string, amount: bigint, chain: number): Promise<NoteDto[]> {
-    const query = `SELECT * FROM NOTES WHERE asset = ? AND amount =? chain = ? AND status = 0 ORDER BY amount DESC`;
+  public async getNoteByCommitment(noteCommitment: bigint): Promise<NoteDto> {
+    const query = `SELECT * FROM NOTES WHERE noteCommitment = ?`;
     const stmt = this.db.prepare(query);
-    const rows = stmt.all(asset, amount, chain) as NoteDto[];
+    const row = stmt.get(noteCommitment) as NoteDto;
+    const note = {
+      id: row.id,
+      chainId: row.chainId,
+      publicKey: row.publicKey,
+      wallet: row.wallet,
+      type: row.type,
+      noteCommitment: row.noteCommitment,
+      rho: row.rho,
+      asset: row.asset,
+      amount: row.amount,
+      status: row.status,
+      txHashCreated: row.txHashCreated,
+    };
+    return note;
+  }
+
+  public async getNoteByAssetAndAmount(asset: string, amount: bigint, chainId: number): Promise<NoteDto[]> {
+    const query = `SELECT * FROM NOTES WHERE asset = ? AND amount =? chainId = ? AND status = 0 ORDER BY amount DESC`;
+    const stmt = this.db.prepare(query);
+    const rows = stmt.all(asset, amount, chainId) as NoteDto[];
 
     const notes = rows.map(row => ({
       id: row.id,
-      chain: row.chain,
+      chainId: row.chainId,
       publicKey: row.publicKey,
       wallet: row.wallet,
       type: row.type,
@@ -125,16 +145,16 @@ export class DatabaseService {
   } 
 
   // Asset pair operations
-  public async addAssetPair(assetA: string, assetB: string, symbolA : string, symbolB : string, chain: number) {
-    const query = `INSERT INTO ASSET_PAIRS (assetA, assetB, symbolA,  symbolB, chain) VALUES (?, ?, ?, ?, ?)`;
+  public async addAssetPair(id: string, assetA: string, assetB: string, symbolA : string, symbolB : string, chainId: number) {
+    const query = `INSERT INTO ASSET_PAIRS (id, assetA, assetB, symbolA,  symbolB, chainId) VALUES (?, ?, ?, ?, ?, ?)`;
     const stmt = this.db.prepare(query);
-    await stmt.run(assetA, assetB, chain);
+    await stmt.run(id, assetA, assetB, symbolA, symbolB, chainId);
   }
 
-  public async getAssetPairs(chain: number): Promise<AssetPairDto[]> {
-    const query = `SELECT * FROM ASSET_PAIRS WHERE chain = ?`;
+  public async getAssetPairs(chainId: number): Promise<AssetPairDto[]> {
+    const query = `SELECT * FROM ASSET_PAIRS WHERE chainId = ?`;
     const stmt = this.db.prepare(query);
-    const rows = stmt.all(chain) as AssetPairDto[];
+    const rows = stmt.all(chainId) as AssetPairDto[];
 
     const assetPairs = rows.map(row => ({
       id: row.id,
@@ -142,19 +162,19 @@ export class DatabaseService {
       assetB: row.assetB,
       symbolA: row.symbolA,
       symbolB: row.symbolB,
-      chain: row.chain,
+      chainId: row.chainId,
     }));
 
     return assetPairs;
 
   }
 
-  public async getAssetPair(assetA: string, assetB: string, chain: number): Promise<AssetPairDto> {
-    const query = `SELECT * FROM ASSET_PAIRS WHERE assetA = ? AND assetB = ? AND chain = ?`;
+  public async getAssetPair(assetA: string, assetB: string, chainId: number): Promise<AssetPairDto> {
+    const query = `SELECT * FROM ASSET_PAIRS WHERE assetA = ? AND assetB = ? AND chainId = ?`;
     const stmt = this.db.prepare(query);
-    let row = stmt.get(assetA, assetB, chain) as AssetPairDto;
+    let row = stmt.get(assetA, assetB, chainId) as AssetPairDto;
     if (!row) {
-      row = stmt.get(assetB, assetA, chain) as AssetPairDto;
+      row = stmt.get(assetB, assetA, chainId) as AssetPairDto;
     }
     const assetPair = {
       id: row.id,
@@ -162,12 +182,12 @@ export class DatabaseService {
       assetB: row.assetB,
       symbolA: row.symbolA,
       symbolB: row.symbolB,
-      chain: row.chain,
+      chainId: row.chainId,
     };
     return assetPair;
   }
 
-  public async getAssetPairById(assetPairId: number) : Promise<AssetPairDto> {
+  public async getAssetPairById(assetPairId: string) : Promise<AssetPairDto> {
     const query = `SELECT * FROM ASSET_PAIRS WHERE id = ?`;
     const stmt = this.db.prepare(query);
     const row = stmt.get(assetPairId) as AssetPairDto;
@@ -177,7 +197,7 @@ export class DatabaseService {
       assetB: row.assetB,
       symbolA: row.symbolA,
       symbolB: row.symbolB,
-      chain: row.chain,
+      chainId: row.chainId,
     };
     return assetPair;
 
@@ -186,16 +206,16 @@ export class DatabaseService {
   // Order operations
   public async addOrderByDto(order: OrderDto) {
     const query = `INSERT INTO ORDERS (
-      orderId, chain, assetPairId, orderDirection, orderType, timeInForce, stpMode, price, amountOut, amountIn, partialAmountIn, status, wallet, publicKey, noteCommitment, signature, txHashCreated)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      orderId, chainId, assetPairId, orderDirection, orderType, timeInForce, stpMode, price, amountOut, amountIn, partialAmountIn, status, wallet, publicKey, noteCommitment, nullifier, signature, txHashCreated)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const stmt = this.db.prepare(query);
-    await stmt.run(order.orderId, order.chain, order.assetPairId, order.orderDirection, order.orderType, order.timeInForce, order.stpMode, order.price, order.amountOut, order.amountIn, order.partialAmountIn, order.status, order.wallet, order.publicKey, order.noteCommitment, order.signature, order.txHashCreated);
+    await stmt.run(order.orderId, order.chainId, order.assetPairId, order.orderDirection, order.orderType, order.timeInForce, order.stpMode, order.price, order.amountOut, order.amountIn, order.partialAmountIn, order.status, order.wallet, order.publicKey, order.noteCommitment, order.nullifier, order.txHashCreated);
 
   }
 
   public async addOrder(
       orderId: string, 
-      chain: number, 
+      chainId: number, 
       assetPairId: string, 
       orderDirection: number, 
       orderType: number, 
@@ -208,14 +228,15 @@ export class DatabaseService {
       status: number, 
       wallet: string, 
       publicKey: string, 
-      noteCommitment: bigint, 
+      noteCommitment: bigint,
+      nullifier: bigint, 
       signature: string,
       txHashCreated: string) {
     const query = `INSERT INTO ORDERS (
-      orderId, chain, assetPairId, orderDirection, orderType, timeInForce, stpMode, price, amountOut, amountIn, partialAmountIn, status, wallet, publicKey, noteCommitment, signature, txHashCreated)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      orderId, chainId, assetPairId, orderDirection, orderType, timeInForce, stpMode, price, amountOut, amountIn, partialAmountIn, status, wallet, publicKey, noteCommitment, nullifier, signature, txHashCreated)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const stmt = this.db.prepare(query);
-    await stmt.run(orderId, chain, assetPairId, orderDirection, orderType, timeInForce, stpMode, price, amountOut, amountIn, partialAmountIn, status, wallet, publicKey, noteCommitment, signature, txHashCreated);
+    await stmt.run(orderId, chainId, assetPairId, orderDirection, orderType, timeInForce, stpMode, price, amountOut, amountIn, partialAmountIn, status, wallet, publicKey, noteCommitment, nullifier, signature, txHashCreated);
   }
 
   public async getOrdersByStatusAndPage(status: number, page: number, limit: number): Promise<OrderDto[]> {
@@ -226,7 +247,7 @@ export class DatabaseService {
     const orders = rows.map(row => ({
       id: row.id,
       orderId: row.orderId,
-      chain: row.chain,
+      chainId: row.chainId,
       assetPairId: row.assetPairId,
       orderDirection: row.orderDirection,
       orderType: row.orderType,
@@ -240,8 +261,8 @@ export class DatabaseService {
       status: row.status,
       publicKey: row.publicKey,
       noteCommitment: row.noteCommitment,
-      txHashCreated: row.txHashCreated,
-      signature: row.signature,
+      nullifier: row.nullifier,
+      txHashCreated: row.txHashCreated
     }));
 
     return orders;

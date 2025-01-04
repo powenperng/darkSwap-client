@@ -12,8 +12,8 @@ export class BasicController {
 
   @Post('deposit')
   async deposit(@Body() depositDto: DepositDto) {
-    const context = await DarkpoolContext.createDarkpoolContext(depositDto.chain, depositDto.wallet)
-    const token = await TokenService.getTokenByChainId(depositDto.chain, depositDto.asset);
+    const context = await DarkpoolContext.createDarkpoolContext(depositDto.chainId, depositDto.wallet)
+    const token = await TokenService.getTokenByChainId(depositDto.chainId, depositDto.asset);
     const amount = ethers.parseUnits(depositDto.amount.toString(), token.decimals);
     await this.basicService.deposit(context, token, amount);
     return { message: 'success' };
@@ -21,8 +21,8 @@ export class BasicController {
 
   @Post('withdraw')
   async withdraw(@Body() withdrawDto: WithdrawDto) {
-    const context = await DarkpoolContext.createDarkpoolContext(withdrawDto.chain, withdrawDto.wallet)
-    const token = await TokenService.getTokenByChainId(withdrawDto.chain, withdrawDto.asset);
+    const context = await DarkpoolContext.createDarkpoolContext(withdrawDto.chainId, withdrawDto.wallet)
+    const token = await TokenService.getTokenByChainId(withdrawDto.chainId, withdrawDto.asset);
     const amount = ethers.parseUnits(withdrawDto.amount.toString(), token.decimals);
     await this.basicService.withdraw(context, token, amount, withdrawDto.receiptAddress);
     return { message: 'success' };
