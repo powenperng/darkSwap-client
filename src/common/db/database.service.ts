@@ -262,12 +262,42 @@ export class DatabaseService {
       publicKey: row.publicKey,
       noteCommitment: row.noteCommitment,
       nullifier: row.nullifier,
-      txHashCreated: row.txHashCreated
+      txHashCreated: row.txHashCreated,
+      txHashSettled: row.txHashSettled
     }));
 
     return orders;
 
   }
+
+  public async getOrderByOrderId(orderId: string): Promise<OrderDto> {
+    const query = `SELECT * FROM ORDERS WHERE orderId = ?`;
+    const stmt = this.db.prepare(query);
+    const row = stmt.get(orderId) as OrderDto;
+    const order = {
+      id: row.id,
+      orderId: row.orderId,
+      chainId: row.chainId,
+      assetPairId: row.assetPairId,
+      orderDirection: row.orderDirection,
+      orderType: row.orderType,
+      timeInForce: row.timeInForce,
+      stpMode: row.stpMode,
+      price: row.price,
+      amountOut: row.amountOut,
+      amountIn: row.amountIn,
+      partialAmountIn: row.partialAmountIn,
+      wallet: row.wallet,
+      status: row.status,
+      publicKey: row.publicKey,
+      noteCommitment: row.noteCommitment,
+      nullifier: row.nullifier,
+      txHashCreated: row.txHashCreated,
+      txHashSettled: row.txHashSettled
+    };
+    return order;
+  }
+
 
   public async cancelOrder(orderId: string) {
     const query = `UPDATE ORDERS SET status = 2 WHERE orderId = ?`;
@@ -279,6 +309,12 @@ export class DatabaseService {
     const query = `UPDATE ORDERS SET status = 1 WHERE orderId = ?`;
     const stmt = this.db.prepare(query);
     await stmt.run(orderId);
+  }
+
+  public async updateOrderSettlementTransaction(orderId: string, txHash: string) {
+    const query = `UPDATE ORDERS SET txHashSettled = ? WHERE orderId = ?`;
+    const stmt = this.db.prepare(query);
+    await stmt.run(txHash, orderId);
   }
 
 

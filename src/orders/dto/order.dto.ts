@@ -18,4 +18,5 @@ export class OrderDto extends BaseDto {
     noteCommitment: bigint;
     nullifier: bigint;
     txHashCreated: string;
+    txHashSettled: string;
 } 

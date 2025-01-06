@@ -66,6 +66,7 @@ export default{
             noteCommitment TEXT NOT NULL,
             nullifier TEXT NOT NULL,
             txHashCreated TEXT,
+            txHashSettled TEXT,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON INSERT,
             updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE);`,
     ]

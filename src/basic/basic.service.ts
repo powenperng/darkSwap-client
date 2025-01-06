@@ -7,14 +7,23 @@ import { Note } from '@thesingularitynetwork/darkpool-v1-proof';
 
 @Injectable()
 export class BasicService {
+
+  private static instance: BasicService;
+  private dbService: DatabaseService;
+  private noteBatchJoinSplitService: NoteBatchJoinSplitService;
+
+  public constructor() {
+    this.dbService = DatabaseService.getInstance();
+    this.noteBatchJoinSplitService = NoteBatchJoinSplitService.getInstance();
+  }
+
   // Method to deposit funds
   async deposit(darkPoolContext: DarkpoolContext, asset: Token, amount: bigint) {
     const depositService = new DepositService(darkPoolContext.darkPool);
-    const dbservice = DatabaseService.getInstance();
     const { context, outNotes } = await depositService.prepare(
       asset.address, amount, darkPoolContext.walletAddress, darkPoolContext.signature);
 
-    const id = await dbservice.addNote(
+    const id = await this.dbService.addNote(
       darkPoolContext.chainId, 
       darkPoolContext.publicKey, 
       darkPoolContext.walletAddress, 
@@ -27,7 +36,7 @@ export class BasicService {
       '')
     await depositService.generateProof(context);
     const tx = await depositService.execute(context);
-    await dbservice.updateNoteTransactionAndStatus(id, tx);
+    await this.dbService.updateNoteTransactionAndStatus(id, tx);
   }
 
   // Method to withdraw funds
@@ -38,9 +47,8 @@ export class BasicService {
     }
 
     const withdrawService = new WithdrawService(darkPoolContext.darkPool);
-    const dbservice = DatabaseService.getInstance();
 
-    const notes = await dbservice.getNotesByAsset(asset.address, darkPoolContext.chainId);
+    const notes = await this.dbService.getNotesByAsset(asset.address, darkPoolContext.chainId);
 
     const notesToProcess = notes.map(note => {
       return {
@@ -51,7 +59,7 @@ export class BasicService {
       } as Note;
     });
 
-    const noteToWithdraw = await NoteBatchJoinSplitService.notesJoinSplit(notesToProcess, darkPoolContext, amount);
+    const noteToWithdraw = await this.noteBatchJoinSplitService.notesJoinSplit(notesToProcess, darkPoolContext, amount);
     if (noteToWithdraw === null){
       throw new Error("Insufficient funds");
     }

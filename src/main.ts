@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { WebSocket } from 'ws';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { SettlementService }  from './settlement/settlement.service';
 
 import * as crypto from 'crypto';
 import { ConfigLoader } from './utils/configUtil';
@@ -51,6 +52,23 @@ function startWebSocket() {
   });
 
   ws.on('message', (data) => {
+    try{
+      const settlementService = SettlementService.getInstance();
+      const notificationEvent = JSON.parse(data.toString());
+      switch (notificationEvent.eventType) {
+        case 1:
+          settlementService.takerSwap(notificationEvent.orderId);
+          break;
+        case 2:
+          settlementService.makerSwap(notificationEvent.orderId);
+          break;
+        default:
+          console.log('Unknown event:', notificationEvent);
+          break;
+      }
+    } catch (error) {
+      console.error('Invalid message:', data.toString());
+    }
     // Handle incoming messages
   });
 

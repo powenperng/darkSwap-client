@@ -9,14 +9,21 @@ import axios from 'axios';
 
 @Injectable()
 export class OrderService {
-  // Method to create an order
+  private static instance: OrderService;
+  private dbService: DatabaseService;
+  private noteBatchJoinSplitService: NoteBatchJoinSplitService;
+
+  public constructor() {
+    this.dbService = DatabaseService.getInstance();
+    this.noteBatchJoinSplitService = NoteBatchJoinSplitService.getInstance();
+  }
+
   async createOrder(orderDto: OrderDto, darkPoolContext: DarkpoolContext) {
     const createMakerOrderService = new CreateMakerOrderService(darkPoolContext.darkPool);
 
-    const dbservice = DatabaseService.getInstance();
-    const assetPair = await dbservice.getAssetPairById(orderDto.assetPairId);
+    const assetPair = await this.dbService.getAssetPairById(orderDto.assetPairId);
     const outAsset = orderDto.orderDirection === 0 ? assetPair.assetB : assetPair.assetA;
-    const notes = await dbservice.getNotesByAsset(outAsset, darkPoolContext.chainId);
+    const notes = await this.dbService.getNotesByAsset(outAsset, darkPoolContext.chainId);
     const notesToProcess = notes.map(note => {
       return {
         note: note.noteCommitment,
@@ -26,16 +33,19 @@ export class OrderService {
       } as Note;
     });
 
-    const noteForOrder = await NoteBatchJoinSplitService.notesJoinSplit(notesToProcess, darkPoolContext, orderDto.amountOut); 
+    const noteForOrder = await this.noteBatchJoinSplitService.notesJoinSplit(notesToProcess, darkPoolContext, orderDto.amountOut); 
     const {context, outNotes} = await createMakerOrderService.prepare(noteForOrder,darkPoolContext.signature);
     await createMakerOrderService.generateProof(context);
     const tx = await createMakerOrderService.execute(context);
     orderDto.status = 0;
     orderDto.nullifier = BigInt(context.proof.outNullifier);
     orderDto.txHashCreated = tx;
+    orderDto.publicKey = darkPoolContext.publicKey;
 
-    await dbservice.addOrderByDto(orderDto);
-    await axios.post(`${process.env.BOOKNODE_API_URL}/createOrder`, orderDto,{
+    await this.dbService.addOrderByDto(orderDto);
+
+    delete orderDto.noteCommitment;
+    await axios.post(`${process.env.BOOKNODE_API_URL}/order/createOrder`, orderDto,{
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.BOOKNODE_API_KEY}`
@@ -45,10 +55,10 @@ export class OrderService {
 
   // Method to cancel an order
   async cancelOrder(cancelOrderDto: OrderDto, darkPoolContext: DarkpoolContext) {
-    const dbservice = DatabaseService.getInstance();
+    
     const cancelOrderService = new CancelOrderService(darkPoolContext.darkPool);
 
-    const note = await dbservice.getNoteByCommitment(cancelOrderDto.noteCommitment);
+    const note = await this.dbService.getNoteByCommitment(cancelOrderDto.noteCommitment);
     const noteToProcess = {
       note: note.noteCommitment,
       rho: note.rho,
@@ -59,8 +69,8 @@ export class OrderService {
     const {context, outNotes} = await cancelOrderService.prepare(noteToProcess, darkPoolContext.signature);
     await cancelOrderService.generateProof(context);
     await cancelOrderService.execute(context);
-    await dbservice.cancelOrder(cancelOrderDto.orderId);
-    await axios.post(`${process.env.BOOKNODE_API_URL}/cancelOrder`, cancelOrderDto,{
+    await this.dbService.cancelOrder(cancelOrderDto.orderId);
+    await axios.post(`${process.env.BOOKNODE_API_URL}/order/cancelOrder`, cancelOrderDto,{
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.BOOKNODE_API_KEY}`
@@ -69,7 +79,6 @@ export class OrderService {
   }
   // Method to get orders by status and page
   getOrdersByStatusAndPage(status: number, page: number, limit: number): Promise<OrderDto[]> {
-    const dbservice = DatabaseService.getInstance();
-    return dbservice.getOrdersByStatusAndPage(status, page, limit);
+    return this.dbService.getOrdersByStatusAndPage(status, page, limit);
   }
 }
