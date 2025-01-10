@@ -7,21 +7,32 @@ import { DarkpoolContext } from '../common/context/darkpool.context';
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  @Post()
-  async create(@Body() orderDto: OrderDto) {
+  @Post('createOrder')
+  async createOrder(@Body() orderDto: OrderDto) {
     const context = await DarkpoolContext.createDarkpoolContext(orderDto.chainId, orderDto.wallet)
     return this.orderService.createOrder(orderDto, context);
   }
 
-  async cancel(@Body() orderId: string, wallet: string, chainId: number) {
+  @Post('cancelOrder')
+  async cancelOrder(@Body() orderId: string, wallet: string, chainId: number) {
     const context = await DarkpoolContext.createDarkpoolContext(chainId, wallet)
     return this.orderService.cancelOrder(orderId, context);
   }
 
 
-  @Get()
-  findAll(@Param('status') status: number, @Param('page') page: number, @Param('limit') limit: number) {
+  @Get('getAllOrders/:status/:page/:limit')
+  getAllOrders(@Param('status') status: number, @Param('page') page: number, @Param('limit') limit: number) {
     return this.orderService.getOrdersByStatusAndPage(status, page, limit);
+  }
+
+  @Get('getOrderById/:orderId')
+  getOrderById(@Param('orderId') orderId: string) {
+    return this.orderService.getOrderById(orderId);
+  }
+
+  @Get('getAssetPairs')
+  getAssetPairs(@Param('chainId') chainId: number) {
+    return this.orderService.getAssetPairs(chainId);
   }
 
 }

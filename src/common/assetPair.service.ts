@@ -50,5 +50,5 @@ export class AssetPairService {
         if (!assetPairDb) {
             await this.dbService.addAssetPair(assetPair);
         }
-    }      
+    }
 }

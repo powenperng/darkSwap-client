@@ -9,6 +9,7 @@ import { NoteBatchJoinSplitService } from 'src/common/noteBatchJoinSplit.service
 import { ConfigLoader } from 'src/utils/configUtil';
 import { v4 } from 'uuid';
 import axios from 'axios';
+import { AssetPairDto } from 'src/common/dto/assetPair.dto';
 
 @Injectable()
 export class OrderService {
@@ -92,8 +93,17 @@ export class OrderService {
       }
     });
   }
-  // Method to get orders by status and page
-  getOrdersByStatusAndPage(status: number, page: number, limit: number): Promise<OrderDto[]> {
-    return this.dbService.getOrdersByStatusAndPage(status, page, limit);
+
+  async getOrdersByStatusAndPage(status: number, page: number, limit: number): Promise<OrderDto[]> {
+    return await this.dbService.getOrdersByStatusAndPage(status, page, limit);
+  }
+
+  async getOrderById(orderId: string): Promise<OrderDto> {
+    return await this.dbService.getOrderByOrderId(orderId);
+  }
+
+  async getAssetPairs(chainId: number): Promise<AssetPairDto[]> {
+    const assetPairs = await this.dbService.getAssetPairs(chainId);
+    return assetPairs;
   }
 }
