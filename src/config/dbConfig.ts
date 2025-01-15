@@ -14,12 +14,11 @@ export default{
             note_commitment TEXT NOT NULL, 
             rho TEXT NOT NULL, 
             asset TEXT NOT NULL, 
-            amount NUMERIC NOT NULL
-            status INTEGER NOT NULL
+            amount NUMERIC NOT NULL,
+            status INTEGER NOT NULL,
             txHashCreated TEXT,
-            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON INSERT,
-            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE
-            );`,
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`,
             
         `CREATE TABLE IF NOT EXISTS ASSET_PAIRS (
             id TEXT PRIMARY KEY,
@@ -30,8 +29,8 @@ export default{
             quoteAddress TEXT NOT NULL,
             quoteSymbol TEXT NOT NULL,
             quoteDecimal INTERGER NOT NULL,
-            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON INSERT,
-            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );`,
 
         //order_direction: 0: buy, 1: sell
@@ -70,7 +69,7 @@ export default{
             nullifier TEXT NOT NULL,
             txHashCreated TEXT,
             txHashSettled TEXT,
-            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON INSERT,
-            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE);`,
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`,
     ]
 }

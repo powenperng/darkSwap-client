@@ -1,15 +1,17 @@
-import { Database } from 'better-sqlite3';
+import Database from 'better-sqlite3';
 import config from '../../config/dbConfig';
 import { NoteDto } from '../dto/note.dto';
 import { AssetPairDto } from '../dto/assetPair.dto';
 import { OrderDto } from '../../orders/dto/order.dto';
+import { ConfigLoader } from 'src/utils/configUtil';
 
 export class DatabaseService {
   private static instance: DatabaseService;
-  private db: Database;
+  private db: Database.Database;
 
   private constructor() {
-    this.db = new Database(config.dbFile);
+    const dbFilePath = ConfigLoader.getInstance().getConfig().dbFilePath;
+    this.db = new Database(dbFilePath)
     this.init();
   }
 
@@ -22,28 +24,28 @@ export class DatabaseService {
 
   public async init() {
     for (const table of config.tables) {
-      await this.db.exec(table);
+      this.db.exec(table);
     }
   }
 
   // Note operations
   public async addNote(
-      chainId: number, 
-      publicKey: string, 
-      walletAddress: string, 
-      type: number, 
-      noteCommitment: bigint, 
-      rho: bigint, 
-      asset: string, 
-      amount: bigint, 
-      status: number,
-      txHashCreated: string): Promise<number> {
+    chainId: number,
+    publicKey: string,
+    walletAddress: string,
+    type: number,
+    noteCommitment: bigint,
+    rho: bigint,
+    asset: string,
+    amount: bigint,
+    status: number,
+    txHashCreated: string): Promise<number> {
     const query = `INSERT INTO NOTES (
       chainId, publicKey, wallet, type, noteCommitment, rho, asset, amount, status, txHashCreated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const stmt = this.db.prepare(query);
     const result = stmt.run(chainId, publicKey, walletAddress, type, noteCommitment, rho, asset, amount, status, txHashCreated);
-    return result.lastInsertRowid;
-    }
+    return Number(result.lastInsertRowid);
+  }
 
   public async getNotesByWallet(walletAddress: string): Promise<NoteDto[]> {
     const query = `SELECT * FROM NOTES WHERE wallet = ?`;
@@ -156,13 +158,13 @@ export class DatabaseService {
     const query = `UPDATE NOTES SET status = ? WHERE id = ?`;
     const stmt = this.db.prepare(query);
     await stmt.run(status, id);
-  } 
+  }
 
   public async updateNoteTransactionAndStatus(id: number, txHash: string) {
     const query = `UPDATE NOTES SET transaction = ?, status = 0 WHERE id = ?`;
     const stmt = this.db.prepare(query);
     await stmt.run(txHash, id);
-  } 
+  }
 
   // Asset pair operations
   public async addAssetPair(assetPair: AssetPairDto) {
@@ -191,7 +193,7 @@ export class DatabaseService {
 
   }
 
-  public async getAssetPairById(assetPairId: string) : Promise<AssetPairDto> {
+  public async getAssetPairById(assetPairId: string): Promise<AssetPairDto> {
     const query = `SELECT * FROM ASSET_PAIRS WHERE id = ?`;
     const stmt = this.db.prepare(query);
     const row = stmt.get(assetPairId) as AssetPairDto;
@@ -220,24 +222,24 @@ export class DatabaseService {
   }
 
   public async addOrder(
-      orderId: string, 
-      chainId: number, 
-      assetPairId: string, 
-      orderDirection: number, 
-      orderType: number, 
-      timeInForce: number, 
-      stpMode: number, 
-      price: string, 
-      amountOut: bigint, 
-      amountIn: bigint,
-      partialAmountIn: bigint, 
-      status: number, 
-      wallet: string, 
-      publicKey: string, 
-      noteCommitment: bigint,
-      nullifier: bigint, 
-      signature: string,
-      txHashCreated: string) {
+    orderId: string,
+    chainId: number,
+    assetPairId: string,
+    orderDirection: number,
+    orderType: number,
+    timeInForce: number,
+    stpMode: number,
+    price: string,
+    amountOut: bigint,
+    amountIn: bigint,
+    partialAmountIn: bigint,
+    status: number,
+    wallet: string,
+    publicKey: string,
+    noteCommitment: bigint,
+    nullifier: bigint,
+    signature: string,
+    txHashCreated: string) {
     const query = `INSERT INTO ORDERS (
       orderId, chainId, assetPairId, orderDirection, orderType, timeInForce, stpMode, price, amountOut, amountIn, partialAmountIn, status, wallet, publicKey, noteCommitment, nullifier, signature, txHashCreated)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
