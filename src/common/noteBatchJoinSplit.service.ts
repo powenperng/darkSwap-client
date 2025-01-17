@@ -2,6 +2,7 @@ import { BatchJoinSplitService, SplitService } from '@thesingularitynetwork/sing
 import { DarkpoolContext } from './context/darkpool.context';
 import { DatabaseService } from './db/database.service';
 import { Note } from '@thesingularitynetwork/darkpool-v1-proof';
+import { NoteStatus } from 'src/types';
 
 export class NoteBatchJoinSplitService {
   private static instance: NoteBatchJoinSplitService;
@@ -45,14 +46,16 @@ export class NoteBatchJoinSplitService {
           outNotes[j].rho,
           outNotes[j].asset,
           outNotes[j].amount,
-          3,
+          NoteStatus.CREATED,
           '');
       }
       await splitservice.generateProof(splitContext);
       const tx = await splitservice.execute(splitContext);
 
       for (let j = 0; j < outNotes.length; j++) {
-        await this.dbService.updateNoteTransactionAndStatus(ids[j], tx);
+        console.log('tx', tx, ids[j]);
+
+        this.dbService.updateNoteTransactionAndStatus(ids[j], tx);
       }
       return outNotes[0];
     } else {
@@ -116,7 +119,7 @@ export class NoteBatchJoinSplitService {
           outNotes[0].rho,
           outNotes[0].asset,
           outNotes[0].amount,
-          3,
+          NoteStatus.CREATED,
           '');
         await batchJoinSplitService.generateProof(context);
         const tx = await batchJoinSplitService.execute(context);

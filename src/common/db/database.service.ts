@@ -186,7 +186,7 @@ export class DatabaseService {
     stmt.run(status, id);
   }
 
-  public async updateNoteTransactionAndStatus(id: number, txHash: string) {
+  public updateNoteTransactionAndStatus(id: number, txHash: string) {
     const query = `UPDATE NOTES SET txHashCreated = ?, status = 0 WHERE id = ?`;
     const stmt = this.db.prepare(query);
     stmt.run(txHash, id);
@@ -219,10 +219,10 @@ export class DatabaseService {
 
   }
 
-  public async getAssetPairById(assetPairId: string): Promise<AssetPairDto | null> {
-    const query = `SELECT * FROM ASSET_PAIRS WHERE id = ?`;
+  public async getAssetPairById(assetPairId: string, chainId: number): Promise<AssetPairDto | null> {
+    const query = `SELECT * FROM ASSET_PAIRS WHERE id = ? AND chainId = ?`;
     const stmt = this.db.prepare(query);
-    const row = stmt.get(assetPairId) as AssetPairDto | undefined;
+    const row = stmt.get(assetPairId, chainId) as AssetPairDto | undefined;
 
     if (!row) {
       return null;
@@ -245,10 +245,17 @@ export class DatabaseService {
   // Order operations
   public async addOrderByDto(order: OrderDto) {
     const query = `INSERT INTO ORDERS (
-      orderId, chainId, assetPairId, orderDirection, orderType, timeInForce, stpMode, price, amountOut, amountIn, partialAmountIn, status, wallet, publicKey, noteCommitment, nullifier, signature, txHashCreated)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      orderId, chainId, assetPairId, orderDirection, orderType, 
+      timeInForce, stpMode, price, amountOut, amountIn, 
+      partialAmountIn, status, wallet, publicKey, noteCommitment, 
+      nullifier, txHashCreated)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const stmt = this.db.prepare(query);
-    await stmt.run(order.orderId, order.chainId, order.assetPairId, order.orderDirection, order.orderType, order.timeInForce, order.stpMode, order.price, order.amountOut, order.amountIn, order.partialAmountIn, order.status, order.wallet, order.publicKey, order.noteCommitment, order.nullifier, order.txHashCreated);
+    stmt.run(
+      order.orderId, order.chainId, order.assetPairId, order.orderDirection, order.orderType, 
+      order.timeInForce, order.stpMode, order.price, order.amountOut, order.amountIn, 
+      order.partialAmountIn, order.status, order.wallet, order.publicKey, order.noteCommitment.toString(), 
+      order.nullifier, order.txHashCreated);
 
   }
 

@@ -31,17 +31,17 @@ export class OrderDto extends BaseDto {
     price: string;
     @ApiProperty()
     @IsNotEmpty()
-    amountOut: number;
+    amountOut: bigint;
     @ApiProperty()
     @IsNotEmpty()
-    amountIn: number;
+    amountIn: bigint;
     @ApiProperty() 
     @IsOptional()
-    partialAmountIn?: number;
+    partialAmountIn?: bigint;
     status?: number;
     publicKey?: string;
     noteCommitment?: bigint;
-    nullifier?: bigint;
+    nullifier?: string;
     txHashCreated?: string;
     txHashSettled?: string;
 } 

@@ -3,20 +3,21 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { WebSocket } from 'ws';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { SettlementService }  from './settlement/settlement.service';
+import { SettlementService } from './settlement/settlement.service';
 import { AssetPairService } from './common/assetPair.service';
-
-import * as crypto from 'crypto';
 import { ConfigLoader } from './utils/configUtil';
 
+enum EventType {
+  OrderMatched = 1,
+  OrderConfirm = 2,
+  OrderStatusChanged = 3,
+  AssetPairCreated = 4,
+  Unknown = 0
+}
 
 async function bootstrap() {
   ConfigLoader.getInstance();
   const assetPairService = AssetPairService.getInstance();
-
-  (global as any).crypto = {
-    getRandomValues: (buffer: Uint8Array) => crypto.randomFillSync(buffer),
-  };
 
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
@@ -68,14 +69,14 @@ function startWebSocket() {
         const assetPairService = AssetPairService.getInstance();
         const notificationEvent = JSON.parse(data.toString());
         switch (notificationEvent.eventType) {
-          case 1:
+          case EventType.OrderMatched:
             await settlementService.takerSwap(notificationEvent.orderId);
             break;
-          case 2:
+          case EventType.OrderConfirm:
             await settlementService.makerSwap(notificationEvent.orderId);
             break;
-          case 3:
-            await assetPairService.syncAssetPair(notificationEvent.assetPairId);
+          case EventType.AssetPairCreated:
+            await assetPairService.syncAssetPair(notificationEvent.assetPairId, notificationEvent.chainId);
             break;
           default:
             console.log('Unknown event:', notificationEvent);
@@ -89,7 +90,7 @@ function startWebSocket() {
 
   const reconnect = () => {
     console.log('Attempting to reconnect...');
-    setTimeout(connect, 5000); 
+    setTimeout(connect, 5000);
   };
 
   connect();

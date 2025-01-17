@@ -21,7 +21,7 @@ export default{
             updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`,
             
         `CREATE TABLE IF NOT EXISTS ASSET_PAIRS (
-            id TEXT PRIMARY KEY,
+            id TEXT NOT NULL,
             chainId INTERGER NOT NULL,
             baseAddress TEXT NOT NULL,
             baseSymbol TEXT NOT NULL,
@@ -30,7 +30,8 @@ export default{
             quoteSymbol TEXT NOT NULL,
             quoteDecimal INTERGER NOT NULL,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id, chainId)
             );`,
 
         //order_direction: 0: buy, 1: sell

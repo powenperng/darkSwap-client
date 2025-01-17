@@ -53,3 +53,10 @@ export enum OrderDirection {
     BUY = 0,
     SELL = 1
 }
+
+export enum NoteStatus {
+    ACTIVE = 0,
+    CREATED = 3,
+    SPENT = 4,
+    LOCKED = 5,
+}

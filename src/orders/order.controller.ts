@@ -9,8 +9,13 @@ export class OrderController {
 
   @Post('createOrder')
   async createOrder(@Body() orderDto: OrderDto) {
-    const context = await DarkpoolContext.createDarkpoolContext(orderDto.chainId, orderDto.wallet)
-    return this.orderService.createOrder(orderDto, context);
+    const dto: OrderDto = {
+      ...orderDto,
+      amountOut: BigInt(orderDto.amountOut),
+      amountIn: BigInt(orderDto.amountIn),
+    }
+    const context = await DarkpoolContext.createDarkpoolContext(dto.chainId, dto.wallet)
+    return this.orderService.createOrder(dto, context);
   }
 
   @Post('cancelOrder')
