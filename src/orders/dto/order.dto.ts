@@ -41,6 +41,7 @@ export class OrderDto extends BaseDto {
     status?: number;
     publicKey?: string;
     noteCommitment?: string;
+    incomingNoteCommitment?: string;
     nullifier?: string;
     txHashCreated?: string;
     txHashSettled?: string;

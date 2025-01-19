@@ -67,6 +67,7 @@ export default{
             wallet TEXT NOT NULL,
             publicKey TEXT NOT NULL,
             noteCommitment TEXT NOT NULL,
+            incomingNoteCommitment TEXT,
             nullifier TEXT NOT NULL,
             txHashCreated TEXT,
             txHashSettled TEXT,

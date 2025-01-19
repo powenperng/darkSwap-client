@@ -1,5 +1,3 @@
-import { DarkPool } from "@thesingularitynetwork/singularity-sdk"
-import { Signer } from "ethers"
 
 export enum ChainId {
     HARDHAT = 31337,
@@ -55,8 +53,16 @@ export enum OrderDirection {
 }
 
 export enum NoteStatus {
-    ACTIVE = 0,
-    CREATED = 3,
-    SPENT = 4,
-    LOCKED = 5,
+    CREATED = 0,
+    ACTIVE = 1,
+    SPENT = 2,
+    LOCKED = 3,
+}
+
+export enum OrderStatus {
+    CREATED = 0,
+    MATCHED = 1,
+    CONFIRMED = 2,
+    SETTLED = 3,
+    CANCELLED = 4,
 }

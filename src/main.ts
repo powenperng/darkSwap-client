@@ -9,7 +9,7 @@ import { ConfigLoader } from './utils/configUtil';
 
 enum EventType {
   OrderMatched = 1,
-  OrderConfirm = 2,
+  OrderConfirmed = 2,
   OrderSettled = 3,
   AssetPairCreated = 4,
   Unknown = 0
@@ -74,14 +74,18 @@ function startWebSocket() {
         const settlementService = SettlementService.getInstance();
         const assetPairService = AssetPairService.getInstance();
         const notificationEvent = JSON.parse(data.toString());
+        
         switch (notificationEvent.eventType) {
           case EventType.OrderMatched:
+            console.log('Event for order matched: ', notificationEvent.orderId);
             await settlementService.takerSwap(notificationEvent.orderId);
             break;
-          case EventType.OrderConfirm:
+          case EventType.OrderConfirmed:
+            console.log('Event for order confirmed: ', notificationEvent.orderId);
             await settlementService.makerSwap(notificationEvent.orderId);
             break;
           case EventType.OrderSettled:
+            console.log('Event for order settled: ', notificationEvent.orderId);
             await settlementService.takerPostSettlement(notificationEvent.orderId, notificationEvent.txHash || '');
             break;
           case EventType.AssetPairCreated:

@@ -5,7 +5,7 @@ import { AssetPairDto } from '../dto/assetPair.dto';
 import { OrderDto } from '../../orders/dto/order.dto';
 import { AssetDto } from '../../basic/dto/asset.dto';
 import { ConfigLoader } from '../../utils/configUtil';
-import { NoteStatus } from '../../types';
+import { NoteStatus, OrderStatus } from '../../types';
 
 
 interface NoteEntity {
@@ -161,9 +161,9 @@ export class DatabaseService {
   }
 
   public async getNoteByAssetAndAmount(asset: string, amount: bigint, chainId: number): Promise<NoteDto[]> {
-    const query = `SELECT * FROM NOTES WHERE asset = ? AND amount =? chainId = ? AND status = 0 ORDER BY amount DESC`;
+    const query = `SELECT * FROM NOTES WHERE asset = ? AND amount =? chainId = ? AND status = ? ORDER BY amount DESC`;
     const stmt = this.db.prepare(query);
-    const rows = stmt.all(asset, amount.toString(), chainId) as NoteEntity[];
+    const rows = stmt.all(asset, amount.toString(), chainId, NoteStatus.ACTIVE) as NoteEntity[];
 
     const notes = rows.map(row => ({
       id: row.id,
@@ -183,9 +183,9 @@ export class DatabaseService {
   }
 
   public updateNoteTransactionAndStatus(id: number, txHash: string) {
-    const query = `UPDATE NOTES SET txHashCreated = ?, status = 0 WHERE id = ?`;
+    const query = `UPDATE NOTES SET txHashCreated = ?, status = ? WHERE id = ?`;
     const stmt = this.db.prepare(query);
-    stmt.run(txHash, id);
+    stmt.run(txHash, NoteStatus.ACTIVE, id);
   }
 
   private async updateNoteStatus(wallet: string, chainId: number, noteCommitment: bigint, status: number) {
@@ -270,7 +270,7 @@ export class DatabaseService {
     stmt.run(
       order.orderId, order.chainId, order.assetPairId, order.orderDirection, order.orderType, 
       order.timeInForce, order.stpMode, order.price, order.amountOut, order.amountIn, 
-      order.partialAmountIn, order.status, order.wallet, order.publicKey, order.noteCommitment.toString(), 
+      order.partialAmountIn, OrderStatus.CREATED, order.wallet, order.publicKey, order.noteCommitment.toString(), 
       order.nullifier, order.txHashCreated);
 
   }
@@ -301,7 +301,7 @@ export class DatabaseService {
     stmt.run(
       orderId, chainId, assetPairId, orderDirection, orderType, 
       timeInForce, stpMode, price, amountOut, amountIn, 
-      partialAmountIn, status, wallet, publicKey, noteCommitment, 
+      partialAmountIn, OrderStatus.CREATED, wallet, publicKey, noteCommitment, 
       nullifier, signature, txHashCreated);
   }
 
@@ -357,6 +357,7 @@ export class DatabaseService {
       status: row.status,
       publicKey: row.publicKey,
       noteCommitment: row.noteCommitment,
+      incomingNoteCommitment: row.incomingNoteCommitment,
       nullifier: row.nullifier,
       txHashCreated: row.txHashCreated,
       txHashSettled: row.txHashSettled
@@ -366,15 +367,21 @@ export class DatabaseService {
 
 
   public async cancelOrder(orderId: string) {
-    const query = `UPDATE ORDERS SET status = 2 WHERE orderId = ?`;
+    const query = `UPDATE ORDERS SET status = ? WHERE orderId = ?`;
     const stmt = this.db.prepare(query);
-    stmt.run(orderId);
+    stmt.run(OrderStatus.CANCELLED, orderId);
+  }
+
+  public updateOrderConfirmedAndIncomingNoteCommitment(orderId: string, incomingNoteCommitment: bigint) {
+    const query = `UPDATE ORDERS SET status = ?, incomingNoteCommitment = ? WHERE orderId = ?`;
+    const stmt = this.db.prepare(query);
+    stmt.run(OrderStatus.CONFIRMED, incomingNoteCommitment.toString(), orderId);
   }
 
   public async updateOrderMatched(orderId: string) {
-    const query = `UPDATE ORDERS SET status = 1 WHERE orderId = ?`;
+    const query = `UPDATE ORDERS SET status = ? WHERE orderId = ?`;
     const stmt = this.db.prepare(query);
-    stmt.run(orderId);
+    await stmt.run(OrderStatus.MATCHED, orderId);
   }
 
   public async updateOrderSettlementTransaction(orderId: string, txHash: string) {
