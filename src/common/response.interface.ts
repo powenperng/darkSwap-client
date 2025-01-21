@@ -1,6 +1,71 @@
-export interface Response {
+import { Type } from '@nestjs/common';
+import { applyDecorators } from '@nestjs/common';
+import { ApiExtraModels, ApiOkResponse, ApiResponseProperty, getSchemaPath } from '@nestjs/swagger';
+
+export class DarkPoolResponse<T> {
+  @ApiResponseProperty()
   code: number;
+  @ApiResponseProperty()
   message: string;
-  data: any;
-  error: any;
-} 
+  @ApiResponseProperty()
+  data: T;
+  @ApiResponseProperty()
+  error: string;
+}
+
+export class DarkPoolSimpleResponse {
+  @ApiResponseProperty({
+    type: Number,
+    example: 200
+  })
+  code: number;
+  @ApiResponseProperty({
+    type: String,
+    example: 'Success'
+  })
+  message: string;
+  @ApiResponseProperty({
+    type: String,
+    example: 'Error message'
+  })
+  error: string;
+}
+
+export const ApiGenericResponse = <T extends Type<unknown>>(dataDto: T) =>
+  applyDecorators(
+    ApiExtraModels(DarkPoolResponse, dataDto),
+    ApiOkResponse({
+      schema: {
+        allOf: [
+          { $ref: getSchemaPath(DarkPoolResponse) },
+          {
+            properties: {
+              data: {
+                $ref: getSchemaPath(dataDto)
+              },
+            },
+          },
+        ],
+      },
+    }),
+  )
+
+export const ApiGenericArrayResponse = <T extends Type<unknown>>(dataDto: T) =>
+  applyDecorators(
+    ApiExtraModels(DarkPoolResponse, dataDto),
+    ApiOkResponse({
+      schema: {
+        allOf: [
+          { $ref: getSchemaPath(DarkPoolResponse) },
+          {
+            properties: {
+              data: {
+                type: 'array',
+                items: { $ref: getSchemaPath(dataDto) },
+              },
+            },
+          },
+        ],
+      },
+    }),
+  )

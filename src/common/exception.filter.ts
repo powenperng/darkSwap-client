@@ -1,6 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { DarkpoolException } from '../exception/darkpool.exception';
-import { Response } from './response.interface';
+import { DarkPoolResponse, DarkPoolSimpleResponse } from './response.interface';
 
 @Catch(DarkpoolException)
 export class DarkpoolExceptionFilter implements ExceptionFilter {
@@ -9,11 +9,10 @@ export class DarkpoolExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse();
     const status = exception.getStatus();
 
-    const responseBody: Response = {
+    const responseBody: DarkPoolSimpleResponse = {
       code: status,
-      message: exception.message || 'Error occurred',
-      data: null,
-      error: exception.getResponse() || 'Unknown error',
+      message: exception.message || 'Unknown error',
+      error: exception.message || 'Unknown error',
     };
 
     response.status(status).json(responseBody);

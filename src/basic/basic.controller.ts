@@ -5,29 +5,43 @@ import { BasicService } from './basic.service';
 import { DepositDto } from './dto/deposit.dto';
 import { WithdrawDto } from './dto/withdraw.dto';
 import { BaseDto } from '../common/dto/base.dto';
+import { ApiResponse } from '@nestjs/swagger';
+import { DarkPoolSimpleResponse } from 'src/common/response.interface';
 
 @Controller('basic')
 export class BasicController {
   constructor(private readonly basicService: BasicService) { }
 
   @Post('deposit')
+  @ApiResponse({
+    status: 200,
+    description: 'Deposit success',
+    type: DarkPoolSimpleResponse
+  })
   async deposit(@Body() depositDto: DepositDto) {
     const context = await DarkpoolContext.createDarkpoolContext(depositDto.chainId, depositDto.wallet)
     const token = await TokenService.getTokenByChainId(depositDto.chainId, depositDto.asset);
     await this.basicService.deposit(context, token, BigInt(depositDto.amount));
-    return { message: 'success' };
   }
 
   @Post('withdraw')
+  @ApiResponse({
+    status: 200,
+    description: 'Withdraw success',
+    type: DarkPoolSimpleResponse
+  })
   async withdraw(@Body() withdrawDto: WithdrawDto) {
     const context = await DarkpoolContext.createDarkpoolContext(withdrawDto.chainId, withdrawDto.wallet)
     const token = await TokenService.getTokenByChainId(withdrawDto.chainId, withdrawDto.asset);
     await this.basicService.withdraw(context, token, BigInt(withdrawDto.amount), withdrawDto.receiptAddress);
-    return { message: 'success' };
   }
 
   @Post('mintAccessToken')
+  @ApiResponse({
+    status: 200,
+    description: 'Mint access token success',
+    type: DarkPoolSimpleResponse
+  })
   async mintAccessToken(@Body() baseDto: BaseDto) {
-    return { message: 'success' };
   }
 }

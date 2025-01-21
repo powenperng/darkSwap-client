@@ -1,50 +1,63 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { ApiResponse, ApiExtraModels } from '@nestjs/swagger';
 import { DarkpoolContext } from '../common/context/darkpool.context';
+import { CancelOrderDto } from './dto/cancelOrder.dto';
 import { OrderDto } from './dto/order.dto';
 import { UpdatePriceDto } from './dto/updatePrice.dto';
 import { OrderService } from './order.service';
-import { ApiOperation } from '@nestjs/swagger';
-import { CancelOrderDto } from './dto/cancelOrder.dto';
+import { ApiGenericArrayResponse, ApiGenericResponse, DarkPoolResponse, DarkPoolSimpleResponse } from '../common/response.interface';
+import { AssetPairDto } from 'src/common/dto/assetPair.dto';
 
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
   @Post('createOrder')
-  async createOrder(@Body() orderDto: OrderDto) {
+  @ApiResponse({
+    status: 200,
+    description: 'Order created',
+    type: DarkPoolSimpleResponse
+  })
+  async createOrder(@Body() orderDto: OrderDto): Promise<void> {
     const context = await DarkpoolContext.createDarkpoolContext(orderDto.chainId, orderDto.wallet)
-    return this.orderService.createOrder(orderDto, context);
+    await this.orderService.createOrder(orderDto, context);
   }
 
-  @Post('cancelOrder')
+  @Delete('cancelOrder')
+  @ApiResponse({
+    status: 200,
+    description: 'Order canceled',
+    type: DarkPoolSimpleResponse
+  })
   async cancelOrder(@Body() cancelOrderDto: CancelOrderDto) {
     const context = await DarkpoolContext.createDarkpoolContext(cancelOrderDto.chainId, cancelOrderDto.wallet)
-    return this.orderService.cancelOrder(cancelOrderDto.orderId, context);
+    await this.orderService.cancelOrder(cancelOrderDto.orderId, context);
   }
 
   @Put('updatePrice')
+  @ApiResponse({
+    status: 200,
+    description: 'Order price updated',
+    type: DarkPoolSimpleResponse
+  })
   async updateOrderPrice(@Body() updatePriceDto: UpdatePriceDto) {
-    return await this.orderService.updateOrderPrice(updatePriceDto);
+    await this.orderService.updateOrderPrice(updatePriceDto);
   }
 
   @Get('getAllOrders/:status/:page/:limit')
+  @ApiGenericArrayResponse(OrderDto)
   getAllOrders(@Param('status') status: number, @Param('page') page: number, @Param('limit') limit: number) {
     return this.orderService.getOrdersByStatusAndPage(status, page, limit);
   }
 
-  @ApiOperation({
-    description: 'OrderDirection: 0 for buy, 1 for sell<br>' +
-      'OrderType: 0 for market, 1 for limit<br>' +
-      'TimeInForce: 0 for good till canceled<br>' +
-      'StpMode: 0 for none<br>' +
-      'OrderStatus: 0 for open, 1 matched, 2 for cancelled<br>'
-  })
   @Get('getOrderById/:orderId')
-  getOrderById(@Param('orderId') orderId: string) {
-    return this.orderService.getOrderById(orderId);
+  @ApiGenericResponse(OrderDto)
+  async getOrderById(@Param('orderId') orderId: string): Promise<OrderDto> {
+    return await this.orderService.getOrderById(orderId);
   }
 
   @Get('getAssetPairs')
+  @ApiGenericArrayResponse(AssetPairDto)
   getAssetPairs(@Param('chainId') chainId: number) {
     return this.orderService.getAssetPairs(chainId);
   }
