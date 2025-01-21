@@ -6,7 +6,7 @@ import { DepositDto } from './dto/deposit.dto';
 import { WithdrawDto } from './dto/withdraw.dto';
 import { BaseDto } from '../common/dto/base.dto';
 import { ApiResponse } from '@nestjs/swagger';
-import { DarkPoolSimpleResponse } from 'src/common/response.interface';
+import { DarkPoolSimpleResponse } from '../common/response.interface';
 
 @Controller('basic')
 export class BasicController {

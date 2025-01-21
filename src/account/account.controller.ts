@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
+import { ApiGenericResponse } from '../common/response.interface';
+import { BaseDto } from '../common/dto/base.dto';
 import { AccountService } from './account.service';
 import { MyAssetsDto } from './dto/asset.dto';
-import { BaseDto } from '../common/dto/base.dto';
-import { ApiGenericResponse } from 'src/common/response.interface';
 
 @Controller('account')
 export class AccountController {
