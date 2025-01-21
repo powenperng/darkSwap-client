@@ -4,7 +4,7 @@ import { TokenService } from '../common/token/token.service';
 import { BasicService } from './basic.service';
 import { DepositDto } from './dto/deposit.dto';
 import { WithdrawDto } from './dto/withdraw.dto';
-import { BaseDto } from 'src/common/dto/base.dto';
+import { BaseDto } from '../common/dto/base.dto';
 
 @Controller('basic')
 export class BasicController {
