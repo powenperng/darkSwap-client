@@ -1,6 +1,10 @@
 .git
 .gitignore
-npm-debug.log
-README.md
+dist
+node_modules
+config.yaml
 config.yaml.example
 db.sqlite3
+docker-compose.yml
+Dockerfile
+README.md

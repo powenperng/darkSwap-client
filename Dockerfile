@@ -1,26 +1,15 @@
-#-----------step one----------------
-FROM node:18 As builder
+FROM node:23.7.0
 
 WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm install
 
 COPY . .
 
+RUN npm install
+RUN npm rebuild better-sqlite3
+
 RUN npm run build
+RUN rm -rf ./src
 
-#-----------step two ----------------
+EXPOSE 3002
 
-FROM node:18 As production
-
-WORKDIR /app
-
-COPY --from=builder /app/dist ./
-COPY package*.json ./
-RUN npm ci --only=production
-
-EXPOSE 3000
-
-CMD ["node", "dist/main.js"]
+CMD ["node", "/app/dist/main.js"]
