@@ -39,7 +39,8 @@ async function bootstrap() {
 
   await assetPairService.syncAssetPairs();
 
-  await app.listen(3002);
+  const port = process.env.PORT || 3002;
+  await app.listen(port);
   startWebSocket();
 }
 
