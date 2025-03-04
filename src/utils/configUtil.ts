@@ -4,6 +4,7 @@ import * as yaml from 'js-yaml';
 import { z } from 'zod';
 
 import { ConfigSchema, Config } from './configValidator';
+import { ethers } from "ethers";
 
 export class ConfigLoader {
     private config: Config;
@@ -15,12 +16,24 @@ export class ConfigLoader {
 
     private loadConfig() {
         try {
-            const configPath = process.env.NODE_ENV  === 'dev' ? './config.yaml' : '/data/config.yaml';
+            const configPath = process.env.NODE_ENV === 'dev' ? './config.yaml' : '/data/config.yaml';
 
             const fileContent = fs.readFileSync(configPath, 'utf8');
             this.config = yaml.load(fileContent);
 
             const parsedConfig = ConfigSchema.parse(this.config);
+
+            if (parsedConfig.userSwapRelayerPrivateKey) {
+                if (!parsedConfig.userSwapRelayerAddress || !ethers.isAddress(parsedConfig.userSwapRelayerAddress)) {
+                    throw new Error("User swap relayer address and privatekey is not valid");
+                }
+
+                const wallet = new ethers.Wallet(parsedConfig.userSwapRelayerPrivateKey);
+                if (wallet.address.toLowerCase() != parsedConfig.userSwapRelayerAddress.toLowerCase()) {
+                    throw new Error("User swap relayer address is not aligned with privatekey");
+                }
+            }
+
             this.config = parsedConfig;
 
         } catch (error) {

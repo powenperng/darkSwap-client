@@ -90,7 +90,6 @@ export class BooknodeService {
                     'Authorization': `Bearer ${this.configLoader.getConfig().bookNodeApiKey}`
                 }
             });
-            console.log(result);
             return result;
         } catch (error) {
             console.error('Error in sendRequest:', error.response ? error.response.data : error.message);

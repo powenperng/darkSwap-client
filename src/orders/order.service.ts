@@ -53,6 +53,8 @@ export class OrderService {
     const { context } = await createMakerOrderService.prepare(noteForOrder, darkPoolContext.signature);
     await createMakerOrderService.generateProof(context);
     const tx = await createMakerOrderService.execute(context);
+    await darkPoolContext.darkPool.provider.waitForTransaction(tx);
+
     this.dbService.updateNoteLockedByWalletAndNoteCommitment(darkPoolContext.walletAddress, darkPoolContext.chainId, noteForOrder.note);
     if (!orderDto.orderId) {
       orderDto.orderId = v4();
@@ -104,7 +106,8 @@ export class OrderService {
 
     const { context } = await cancelOrderService.prepare(noteToProcess, darkPoolContext.signature);
     await cancelOrderService.generateProof(context);
-    await cancelOrderService.execute(context);
+    const tx = await cancelOrderService.execute(context);
+    await darkPoolContext.darkPool.provider.waitForTransaction(tx);
     await this.dbService.cancelOrder(cancelOrderDto.orderId);
     if(!byNotification) {
       await this.bookNodeService.cancelOrder(cancelOrderDto);

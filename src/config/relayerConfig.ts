@@ -4,7 +4,7 @@ import { ConfigLoader } from "../utils/configUtil";
 const parseEnvRelayerConfig = () => {
   const customConfig: { [chainId: number]: RelayerInfo[] } = {};
   
-  const relayers = ConfigLoader.getInstance().getConfig().relayers;
+  const relayers = ConfigLoader.getInstance().getConfig().singularityRelayers;
 
   relayers.forEach((relayer: { chainId: number, relayerName: string, relayerAddress: string, hostUrl: string }) => {
     if (!customConfig[relayer.chainId]) {

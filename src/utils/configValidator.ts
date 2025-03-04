@@ -23,15 +23,19 @@ const dbFilePathScema = z.string().nonempty();
 const bookNodeSocketUrlScema = z.string().url();
 const bookNodeApiUrlSchema = z.string().url();
 const bookNodeApiKeySchema = z.string().nonempty();
+const userSwapRelayerAddressSchema = z.string().optional();
+const userSwapRelayerPrivateKeySchema = z.string().optional();
 
 export const ConfigSchema = z.object({
   wallets: z.array(WalletSchema),
-  relayers: z.array(RelayerSchema),
+  singularityRelayers: z.array(RelayerSchema),
   chainRpcs: z.array(ChainRpcSchema),
   dbFilePath: dbFilePathScema,
   bookNodeSocketUrl: bookNodeSocketUrlScema,
   bookNodeApiUrl: bookNodeApiUrlSchema,
-  bookNodeApiKey: bookNodeApiKeySchema
+  bookNodeApiKey: bookNodeApiKeySchema,
+  userSwapRelayerAddress: userSwapRelayerAddressSchema,
+  userSwapRelayerPrivateKey: userSwapRelayerPrivateKeySchema
 });
 
 export function validateConfig(config: unknown) {

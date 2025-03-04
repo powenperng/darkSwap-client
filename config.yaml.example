@@ -6,7 +6,7 @@ wallets:
     address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
     privateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 
-relayers:
+singularityRelayers:
   - relayerName: "Sepolia Relayer"
     relayerAddress: "0x0A20B38894799fD27837aF3Ed8929E7b8d1dDDe7"
     hostUrl: "https://app.dev.portalgate.me:20000"
@@ -20,3 +20,8 @@ dbFilePath : /data/db.sqlite3
 bookNodeSocketUrl: ws://app.dev.portalgate.me:53001
 bookNodeApiUrl: https://app.dev.portalgate.me:53000
 bookNodeApiKey: "CONTACT-US-FOR-API-KEY"
+
+
+#optional
+#userSwapRelayerAddress: 
+#userSwapRelayerPrivateKey: 

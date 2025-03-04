@@ -67,7 +67,7 @@ export class SettlementService {
     if (!wallet) {
       throw new Error(`No wallet found for address: ${darkPoolContext.walletAddress}`);
     }
-    const makerSwapService = new MakerSwapService(darkPoolContext.darkPool);
+    const makerSwapService = new MakerSwapService(darkPoolContext.swapDarkPool);
     const takerSwapMessage = this.deserializeSwapMessage(matchedOrderDto.takerSwapMessage);
 
     const { context, outNotes } = await makerSwapService.prepare(order, note, takerSwapMessage, darkPoolContext.signature);
@@ -75,6 +75,8 @@ export class SettlementService {
 
     await makerSwapService.generateProof(context);
     const tx = await makerSwapService.execute(context);
+    await darkPoolContext.darkPool.provider.waitForTransaction(tx);
+
     this.noteService.setNoteUsed(note, darkPoolContext);
     this.noteService.setNotesActive(outNotes, darkPoolContext, tx);
 
