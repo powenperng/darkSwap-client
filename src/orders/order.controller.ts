@@ -7,6 +7,7 @@ import { CancelOrderDto } from './dto/cancelOrder.dto';
 import { OrderDto } from './dto/order.dto';
 import { UpdatePriceDto } from './dto/updatePrice.dto';
 import { OrderService } from './order.service';
+import { DarkpoolError } from '@thesingularitynetwork/singularity-sdk';
 
 @Controller('orders')
 export class OrderController {
@@ -19,6 +20,11 @@ export class OrderController {
     type: DarkPoolSimpleResponse
   })
   async createOrder(@Body() orderDto: OrderDto): Promise<void> {
+    const order = await this.orderService.getOrderById(orderDto.orderId);
+    if (order) {
+      throw new DarkpoolError('Duplicate Order ID');
+    }
+
     const context = await DarkpoolContext.createDarkpoolContext(orderDto.chainId, orderDto.wallet)
     await this.orderService.createOrder(orderDto, context);
   }

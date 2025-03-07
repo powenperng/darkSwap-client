@@ -41,7 +41,7 @@ export class OrderService {
   }
 
   async createOrder(orderDto: OrderDto, darkPoolContext: DarkpoolContext) {
-    const createMakerOrderService = new CreateMakerOrderService(darkPoolContext.darkPool);
+    const createMakerOrderService = new CreateMakerOrderService(darkPoolContext.relayerDarkPool);
 
     const assetPair = await this.dbService.getAssetPairById(orderDto.assetPairId, orderDto.chainId);
     const outAsset = orderDto.orderDirection === OrderDirection.BUY ? assetPair.quoteAddress : assetPair.baseAddress;
@@ -53,7 +53,7 @@ export class OrderService {
     const { context } = await createMakerOrderService.prepare(noteForOrder, darkPoolContext.signature);
     await createMakerOrderService.generateProof(context);
     const tx = await createMakerOrderService.execute(context);
-    await darkPoolContext.darkPool.provider.waitForTransaction(tx);
+    await darkPoolContext.relayerDarkPool.provider.waitForTransaction(tx);
 
     this.dbService.updateNoteLockedByWalletAndNoteCommitment(darkPoolContext.walletAddress, darkPoolContext.chainId, noteForOrder.note);
     if (!orderDto.orderId) {
@@ -87,7 +87,7 @@ export class OrderService {
   // Method to cancel an order
   async cancelOrder(orderId: string, darkPoolContext: DarkpoolContext, byNotification: boolean = false) {
 
-    const cancelOrderService = new CancelOrderService(darkPoolContext.darkPool);
+    const cancelOrderService = new CancelOrderService(darkPoolContext.relayerDarkPool);
 
     const note = await this.dbService.getNoteByOrderId(orderId);
 
@@ -107,7 +107,7 @@ export class OrderService {
     const { context } = await cancelOrderService.prepare(noteToProcess, darkPoolContext.signature);
     await cancelOrderService.generateProof(context);
     const tx = await cancelOrderService.execute(context);
-    await darkPoolContext.darkPool.provider.waitForTransaction(tx);
+    await darkPoolContext.relayerDarkPool.provider.waitForTransaction(tx);
     await this.dbService.cancelOrder(cancelOrderDto.orderId);
     if(!byNotification) {
       await this.bookNodeService.cancelOrder(cancelOrderDto);

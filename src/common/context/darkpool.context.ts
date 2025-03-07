@@ -9,16 +9,16 @@ export class DarkpoolContext {
     walletAddress: string
     publicKey: string
     darkPool: DarkPool
-    swapDarkPool: DarkPool
+    relayerDarkPool: DarkPool
     signature: string
 
-    private constructor(chain: number, wallet: string, signer: Signer, pubKey: string, darkPool: DarkPool, swapDarkPool: DarkPool, signature: string) {
+    private constructor(chain: number, wallet: string, signer: Signer, pubKey: string, darkPool: DarkPool, relayerDarkPool: DarkPool, signature: string) {
         this.chainId = chain
         this.walletAddress = wallet
         this.signer = signer
         this.publicKey = pubKey
         this.darkPool = darkPool
-        this.swapDarkPool = swapDarkPool
+        this.relayerDarkPool = relayerDarkPool
         this.signature = signature
     }
 
@@ -26,11 +26,11 @@ export class DarkpoolContext {
         const [signer, pubKey] = RpcManager.getInstance().getSignerAndPublicKey(wallet, chain)
         let swapRelayerSigner = RpcManager.getInstance().getSignerForUserSwapRelayer(chain)
         const darkPool = getDarkPool(chain, signer)
-        let swapDarkPool = darkPool
+        let relayerDarkPool = darkPool
         if (!swapRelayerSigner) {
             swapRelayerSigner = signer
         } else {
-            swapDarkPool = getDarkPool(chain, swapRelayerSigner)
+            relayerDarkPool = getDarkPool(chain, swapRelayerSigner)
         }
 
         if (!isAddressCompliant(wallet, darkPool)) {
@@ -55,6 +55,6 @@ export class DarkpoolContext {
         };
 
         const signature = await signer.signTypedData(domain, types, value);
-        return new DarkpoolContext(chain, wallet, signer, pubKey, darkPool, swapDarkPool, signature)
+        return new DarkpoolContext(chain, wallet, signer, pubKey, darkPool, relayerDarkPool, signature)
     }
 } 
