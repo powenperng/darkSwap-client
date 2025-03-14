@@ -36,6 +36,11 @@ export class BasicService {
       '')
     await depositService.generateProof(context);
     const tx = await depositService.execute(context);
+    const receipt = await darkPoolContext.darkPool.provider.waitForTransaction(tx);
+    if (receipt.status !== 1) {
+      throw new Error("Deposit failed");
+    }
+
     this.dbService.updateNoteTransactionByWalletAndNoteCommitment(darkPoolContext.walletAddress, darkPoolContext.chainId, outNotes[0].note, tx);
     this.logger.log(`Deposit of ${amount} ${asset.symbol} for wallet ${darkPoolContext.walletAddress} completed with tx ${tx}`);
   }

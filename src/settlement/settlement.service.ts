@@ -75,7 +75,10 @@ export class SettlementService {
 
     await makerSwapService.generateProof(context);
     const tx = await makerSwapService.execute(context);
-    await darkPoolContext.relayerDarkPool.provider.waitForTransaction(tx);
+    const receipt = await darkPoolContext.relayerDarkPool.provider.waitForTransaction(tx);
+    if (receipt.status !== 1) {
+      throw new Error("Maker swap failed");
+    }
 
     this.noteService.setNoteUsed(note, darkPoolContext);
     this.noteService.setNotesActive(outNotes, darkPoolContext, tx);
@@ -161,7 +164,7 @@ export class SettlementService {
     return JSON.stringify(tmpMessage);
   }
 
-  async takerSwap(orderId: string) {
+  async takerConfirm(orderId: string) {
     const orderInfo = await this.dbService.getOrderByOrderId(orderId);
     const rawNote = await this.dbService.getNoteByCommitment(orderInfo.noteCommitment);
     const note = {

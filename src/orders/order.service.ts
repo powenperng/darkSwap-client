@@ -53,7 +53,10 @@ export class OrderService {
     const { context } = await createMakerOrderService.prepare(noteForOrder, darkPoolContext.signature);
     await createMakerOrderService.generateProof(context);
     const tx = await createMakerOrderService.execute(context);
-    await darkPoolContext.relayerDarkPool.provider.waitForTransaction(tx);
+    const receipt = await darkPoolContext.relayerDarkPool.provider.waitForTransaction(tx);
+    if (receipt.status !== 1) {
+      throw new DarkpoolException("Order creation failed");
+    }
 
     this.dbService.updateNoteLockedByWalletAndNoteCommitment(darkPoolContext.walletAddress, darkPoolContext.chainId, noteForOrder.note);
     if (!orderDto.orderId) {
@@ -107,7 +110,11 @@ export class OrderService {
     const { context } = await cancelOrderService.prepare(noteToProcess, darkPoolContext.signature);
     await cancelOrderService.generateProof(context);
     const tx = await cancelOrderService.execute(context);
-    await darkPoolContext.relayerDarkPool.provider.waitForTransaction(tx);
+    const receipt = await darkPoolContext.relayerDarkPool.provider.waitForTransaction(tx);
+    if (receipt.status !== 1) {
+      throw new DarkpoolException("Order cancellation failed");
+    }
+    
     await this.dbService.cancelOrder(cancelOrderDto.orderId);
     if(!byNotification) {
       await this.bookNodeService.cancelOrder(cancelOrderDto);

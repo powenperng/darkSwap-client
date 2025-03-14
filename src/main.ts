@@ -86,7 +86,7 @@ function startWebSocket() {
         switch (notificationEvent.eventType) {
           case EventType.OrderMatched:
             console.log('Event for order matched: ', notificationEvent.orderId);
-            await settlementService.takerSwap(notificationEvent.orderId);
+            await settlementService.takerConfirm(notificationEvent.orderId);
             break;
           case EventType.OrderConfirmed:
             console.log('Event for order confirmed: ', notificationEvent.orderId);
