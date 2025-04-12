@@ -4,6 +4,8 @@ import { DarkpoolContext } from './context/darkpool.context';
 import { DatabaseService } from './db/database.service';
 import { getConfirmations } from '../config/networkConfig';
 
+const MAX_JOIN_SPLIT_NOTES = 5;
+
 export class NoteBatchJoinSplitService {
   private static instance: NoteBatchJoinSplitService;
   private dbService: DatabaseService;
@@ -122,13 +124,12 @@ export class NoteBatchJoinSplitService {
     } else {
 
       let amountAccumulated = 0n;
-      let i = 0;
+      const notesToJoin: Note[] = [];
 
       for (const note of notes) {
         amountAccumulated += note.amount;
-        if (amountAccumulated < amount) {
-          i++;
-        } else {
+        notesToJoin.push(note);
+        if (amountAccumulated > amount) {
           break;
         }
       }
@@ -137,12 +138,11 @@ export class NoteBatchJoinSplitService {
         return null;
       }
 
-      if (i <= 5) {
-        const notesToJoin = notes.slice(0, i + 1);
+      if (notesToJoin.length <= MAX_JOIN_SPLIT_NOTES) {
         return this.doBatchJoinSplit(notesToJoin, darkPoolContext, amount);
       } else {
-        const firstFive = notes.slice(0, 5);
-        const theRest = notes.slice(5);
+        const firstFive = notesToJoin.slice(0, MAX_JOIN_SPLIT_NOTES);
+        const theRest = notesToJoin.slice(MAX_JOIN_SPLIT_NOTES);
 
         const firstFiveAmount = firstFive.reduce((acc, note) => acc + note.amount, 0n);
         const firstFiveOutNote = await this.doBatchJoinSplit(firstFive, darkPoolContext, firstFiveAmount);

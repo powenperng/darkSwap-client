@@ -100,7 +100,7 @@ export class AccountService {
 
   async syncOneAsset(darkpoolContext: DarkpoolContext, wallet: string, chainId: number, asset: string): Promise<void> {
 
-    const notes = await this.dbService.getNotesByWalletAndChainIdAndAsset(wallet, chainId, asset);
+    const notes = (await this.dbService.getNotesByWalletAndChainIdAndAsset(wallet, chainId, asset)).sort((a, b) => a.amount < b.amount ? 1 : -1);
 
     for (const note of notes) {
       try {
