@@ -8,6 +8,7 @@ import { OrderDto } from './dto/order.dto';
 import { UpdatePriceDto } from './dto/updatePrice.dto';
 import { OrderService } from './order.service';
 import { DarkpoolError } from '@thesingularitynetwork/singularity-sdk';
+import { OrderType } from '../types';
 
 @Controller('orders')
 export class OrderController {
@@ -24,6 +25,15 @@ export class OrderController {
       const order = await this.orderService.getOrderById(orderDto.orderId);
       if (order) {
         throw new DarkpoolError('Duplicate Order ID');
+      }
+    }
+
+    if (orderDto.orderType === OrderType.STOP_LOSS_LIMIT 
+      || orderDto.orderType === OrderType.STOP_LOSS
+      || orderDto.orderType === OrderType.TAKE_PROFIT
+      || orderDto.orderType === OrderType.TAKE_PROFIT_LIMIT) {
+      if (!orderDto.orderTriggerPrice || isNaN(Number(orderDto.orderTriggerPrice)) || Number(orderDto.orderTriggerPrice) <= 0) {
+        throw new DarkpoolError('Order trigger price is required for stop loss or take profit orders');
       }
     }
 

@@ -53,7 +53,7 @@ export class SettlementService {
       asset: rawNote.asset,
       amount: rawNote.amount
     } as Note;
-    
+
     const assetPair = await this.dbService.getAssetPairById(orderInfo.assetPairId, orderInfo.chainId);
     const takerAsset = orderInfo.orderDirection === OrderDirection.BUY ? assetPair.quoteAddress : assetPair.baseAddress;
     const darkPoolContext = await DarkpoolContext.createDarkpoolContext(orderInfo.chainId, orderInfo.wallet);
@@ -92,7 +92,7 @@ export class SettlementService {
     const makerSwapService = new MakerSwapService(darkPoolContext.relayerDarkPool);
     const takerSwapMessage = deserializeDarkPoolTakerSwapMessage(matchedOrderDto.takerSwapMessage);
     await this.checkTakerNoteStatus(darkPoolContext, takerSwapMessage);
-    
+
     const { context, outNotes } = await makerSwapService.prepare(order, note, takerSwapMessage, darkPoolContext.signature);
     this.noteService.addNotes(outNotes, darkPoolContext);
 
@@ -133,6 +133,16 @@ export class SettlementService {
     }
     console.log('Post settlement for ', orderId);
     await this.orderEventService.logOrderStatusChange(orderId, orderInfo.wallet, orderInfo.chainId, OrderStatus.SETTLED);
+  }
+
+  async matchedForMaker(orderId: string) {
+    const orderInfo = await this.dbService.getOrderByOrderId(orderId);
+    if (orderInfo && orderInfo.status === OrderStatus.OPEN) {
+      await this.orderEventService.logOrderStatusChange(orderId, orderInfo.wallet, orderInfo.chainId, OrderStatus.MATCHED);
+      await this.dbService.updateOrderMatched(orderId);
+    } else {
+      console.log('Order ', orderId, ' is not in open status', orderInfo.status);
+    }
   }
 
   async takerConfirm(orderId: string) {

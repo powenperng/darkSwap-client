@@ -9,7 +9,7 @@ import { AssetPairDto } from '../common/dto/assetPair.dto';
 import { NoteBatchJoinSplitService } from '../common/noteBatchJoinSplit.service';
 import { getConfirmations } from '../config/networkConfig';
 import { DarkpoolException } from '../exception/darkpool.exception';
-import { NoteStatus, OrderDirection, OrderStatus } from '../types';
+import { NoteStatus, OrderDirection, OrderStatus, OrderType } from '../types';
 import { CancelOrderDto } from './dto/cancelOrder.dto';
 import { OrderDto } from './dto/order.dto';
 import { UpdatePriceDto } from './dto/updatePrice.dto';
@@ -26,7 +26,7 @@ export class OrderService {
   private noteBatchJoinSplitService: NoteBatchJoinSplitService;
   private bookNodeService: BooknodeService;
   private orderEventService: OrderEventService;
-  
+
   public constructor() {
     this.dbService = DatabaseService.getInstance();
     this.noteBatchJoinSplitService = NoteBatchJoinSplitService.getInstance();
@@ -39,6 +39,22 @@ export class OrderService {
       OrderService.instance = new OrderService();
     }
     return OrderService.instance;
+  }
+
+  async triggerOrder(orderId: string) {
+    const order = await this.dbService.getOrderByOrderId(orderId);
+    if (!order) {
+      throw new DarkpoolException('Order not found');
+    }
+
+    await this.dbService.updateOrderTriggered(orderId);
+
+    await OrderEventService.getInstance().logOrderStatusChange(
+      orderId,
+      order.wallet,
+      order.chainId,
+      OrderStatus.TRIGGERED
+    );
   }
 
   async createOrder(orderDto: OrderDto, darkPoolContext: DarkpoolContext) {
@@ -63,7 +79,16 @@ export class OrderService {
     if (!orderDto.orderId) {
       orderDto.orderId = v4();
     }
-    orderDto.status = OrderStatus.OPEN;
+
+    if (orderDto.orderType === OrderType.STOP_LOSS_LIMIT
+      || orderDto.orderType === OrderType.STOP_LOSS
+      || orderDto.orderType === OrderType.TAKE_PROFIT
+      || orderDto.orderType === OrderType.TAKE_PROFIT_LIMIT) {
+      orderDto.status = OrderStatus.NOT_TRIGGERED;
+    } else {
+      orderDto.status = OrderStatus.OPEN;
+    }
+    
     orderDto.noteCommitment = noteForOrder.note.toString();
     orderDto.nullifier = context.proof.outNullifier;
     orderDto.txHashCreated = tx;
@@ -148,7 +173,7 @@ export class OrderService {
     if (!byNotification) {
       await this.bookNodeService.cancelOrder(cancelOrderDto);
     }
-    
+
     await this.orderEventService.logOrderStatusChange(
       orderId,
       darkPoolContext.walletAddress,

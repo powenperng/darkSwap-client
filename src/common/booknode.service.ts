@@ -7,6 +7,7 @@ import { ConfigLoader } from '../utils/configUtil';
 import { UpdatePriceDto } from '../orders/dto/updatePrice.dto';
 import { OrderDto } from '../orders/dto/order.dto';
 import { DarkpoolException } from '../exception/darkpool.exception';
+import { OrderType } from '../types';
 
 interface BookNodeMatchedOrder {
     orderId: string;
@@ -31,6 +32,7 @@ interface BookNodeCreateOrderDto {
     orderType: number;
     timeInForce: number;
     stpMode: number;
+    orderTriggerPrice: number;
     price: number;
     amountOut: string;
     amountIn: string;
@@ -114,6 +116,14 @@ export class BooknodeService {
     }
 
     public async createOrder(orderDto: OrderDto): Promise<any> {
+        let orderTriggerPrice = 0;
+        if (orderDto.orderType === OrderType.STOP_LOSS_LIMIT
+            || orderDto.orderType === OrderType.STOP_LOSS
+            || orderDto.orderType === OrderType.TAKE_PROFIT
+            || orderDto.orderType === OrderType.TAKE_PROFIT_LIMIT) {
+            orderTriggerPrice = Number(orderDto.orderTriggerPrice);
+        }
+
         const createOrderRequestDto: BookNodeCreateOrderDto = {
             chainId: orderDto.chainId,
             wallet: orderDto.wallet,
@@ -123,6 +133,7 @@ export class BooknodeService {
             orderType: orderDto.orderType,
             timeInForce: orderDto.timeInForce,
             stpMode: orderDto.stpMode,
+            orderTriggerPrice: orderTriggerPrice,
             price: Number(orderDto.price),
             amountOut: orderDto.amountOut.toString(),
             amountIn: orderDto.amountIn.toString(),

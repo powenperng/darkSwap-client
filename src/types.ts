@@ -65,6 +65,8 @@ export enum OrderStatus {
     TAKER_CONFIRMED = 2,
     SETTLED = 3,
     CANCELLED = 4,
+    NOT_TRIGGERED = 5,
+    TRIGGERED = 6,
 }
 
 export enum OrderType {

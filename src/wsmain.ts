@@ -11,7 +11,9 @@ enum EventType {
     OrderSettled = 3,
     AssetPairCreated = 4,
     orderCancelled = 5,
-    Unknown = 0
+    Unknown = 0,
+    OrderMatchedForMaker = 6,
+    OrderTriggered = 7
 }
 
 interface QueuedMessage {
@@ -38,6 +40,10 @@ async function processMessage(message: QueuedMessage): Promise<void> {
                 console.log('Event for order matched: ', notificationEvent.orderId);
                 await settlementService.takerConfirm(notificationEvent.orderId);
                 break;
+            case EventType.OrderMatchedForMaker:
+                console.log('Event for order matched for maker: ', notificationEvent.orderId);
+                await settlementService.matchedForMaker(notificationEvent.orderId);
+                break;
             case EventType.OrderConfirmed:
                 console.log('Event for order confirmed: ', notificationEvent.orderId);
                 await settlementService.makerSwap(notificationEvent.orderId);
@@ -51,6 +57,9 @@ async function processMessage(message: QueuedMessage): Promise<void> {
                 break;
             case EventType.orderCancelled:
                 await orderService.cancelOrderByNotificaion(notificationEvent.orderId);
+                break;
+            case EventType.OrderTriggered:
+                await orderService.triggerOrder(notificationEvent.orderId);
                 break;
             default:
                 console.log('Unknown event:', notificationEvent);
