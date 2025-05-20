@@ -3,7 +3,8 @@ import { z } from 'zod';
 const WalletSchema = z.object({
   name: z.string(),
   address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-  privateKey: z.string().regex(/^0x[a-fA-F0-9]{64}$/)
+  privateKey: z.string().regex(/^0x[a-fA-F0-9]{64}$/).optional(),
+  type: z.enum(['privateKey', 'fireblocks']).default('privateKey')
 });
 
 const RelayerSchema = z.object({
@@ -30,6 +31,12 @@ const bookNodeApiKeySchema = z.string().nonempty();
 const userSwapRelayerAddressSchema = z.string().optional();
 const userSwapRelayerPrivateKeySchema = z.string().optional();
 
+const FireblocksConfigSchema = z.object({
+  privateKey: z.string().nonempty(),
+  apiKey: z.string().nonempty(),
+  apiBaseUrl: z.string().url().optional()
+});
+
 export const ConfigSchema = z.object({
   wallets: z.array(WalletSchema),
   singularityRelayers: z.array(RelayerSchema),
@@ -40,7 +47,19 @@ export const ConfigSchema = z.object({
   bookNodeApiKey: bookNodeApiKeySchema,
   userSwapRelayerAddress: userSwapRelayerAddressSchema,
   userSwapRelayerPrivateKey: userSwapRelayerPrivateKeySchema,
-  proofOptions: ProofOptionsSchema.optional()
+  proofOptions: ProofOptionsSchema.optional(),
+  fireblocks: FireblocksConfigSchema.optional()
+}).refine((data) => {
+  const hasFireblocksWallet = data.wallets.some(wallet => wallet.type === 'fireblocks');
+  
+  if (hasFireblocksWallet && !data.fireblocks) {
+    return false;
+  }
+  
+  return true;
+}, {
+  message: "Fireblocks configuration is required when using fireblocks wallet type",
+  path: ["fireblocks"]
 });
 
 export function validateConfig(config: unknown) {
@@ -68,3 +87,4 @@ export type BookNodeSocketUrlConfig = z.infer<typeof bookNodeSocketUrlScema>;
 export type BookNodeApiUrlConfig = z.infer<typeof bookNodeApiUrlSchema>;
 export type BookNodeApiKeyConfig = z.infer<typeof bookNodeApiKeySchema>;
 export type Config = z.infer<typeof ConfigSchema>;
+export type FireblocksConfig = z.infer<typeof FireblocksConfigSchema>;
