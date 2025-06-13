@@ -1,5 +1,8 @@
 import { ethers } from 'ethers';
 import { ConfigLoader } from './configUtil';
+import { WalletConfig } from './configValidator';
+import { DarkpoolException } from '../exception/darkpool.exception';
+import { FireblocksWeb3Provider } from '@fireblocks/fireblocks-web3-provider';
 
 class RpcManager {
   private static instance: RpcManager;
@@ -63,10 +66,45 @@ class RpcManager {
     }
 
     const provider = this.getProvider(chainId);
-    const signer = new ethers.Wallet(wallet.privateKey, provider);
-    const publicKey = ethers.SigningKey.computePublicKey(wallet.privateKey, true);
+    let signer: ethers.Signer;
+    if (wallet.type === 'privateKey') {
+      signer = this.getSignerForPrivateKey(wallet, provider);
+    } else if (wallet.type === 'fireblocks') {
+      signer = this.getSignerForFireblocks(wallet, chainId);
+    } else {
+      throw new DarkpoolException('Invalid wallet type');
+    }
+    const publicKey = "0x";
     this.signers.set(key, [signer, publicKey]);
     return [signer, publicKey];
+  }
+
+  private getSignerForPrivateKey(wallet: WalletConfig, provider: ethers.JsonRpcProvider): ethers.Signer {
+    if (wallet.type === 'privateKey') {
+      return new ethers.Wallet(wallet.privateKey, provider);
+    }
+    throw new DarkpoolException('Invalid wallet type');
+  }
+
+  private getSignerForFireblocks(wallet: WalletConfig, chainId: number): ethers.Signer {
+    if (wallet.type !== 'fireblocks') {
+      throw new DarkpoolException('Invalid wallet type');
+    }
+
+    const fireblocksConfig = this.configLoader.getConfig().fireblocks;
+    if (!fireblocksConfig) {
+      throw new DarkpoolException('Fireblocks config not found');
+    }
+    const eip1193Provider = new FireblocksWeb3Provider({
+      privateKey: fireblocksConfig.privateKey,
+      apiKey: fireblocksConfig.apiKey,
+      vaultAccountIds: wallet.address,
+      chainId,
+    });
+    if (fireblocksConfig.apiBaseUrl) {
+      eip1193Provider.setApiBaseUrl(fireblocksConfig.apiBaseUrl);
+    }
+    return eip1193Provider.getSigner();
   }
 
   public reloadProviders() {
