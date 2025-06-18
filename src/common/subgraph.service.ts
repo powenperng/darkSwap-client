@@ -11,12 +11,12 @@ export class SubgraphService {
     }
 
 
-    async getSwapTxByNullifiers(chainId: number, makerNullifier: string, takerNullifier: string): Promise<{ txHash: string, makerInNote: string }> {
+    async getSwapTxByNullifiers(chainId: number, aliceNullifier: string, bobNullifier: string): Promise<{ txHash: string, aliceInNote: string }> {
         const query = `
             query findSwapByNullifiers{
-                darkPoolSwaps(where: {aliceOutNullifierIn: "${makerNullifier}", botOutnullifierIn: "${takerNullifier}"}) {
+                darkSwaps(where: {aliceOutNullifierIn: "${aliceNullifier}", bobOutNullifierIn: "${bobNullifier}"}) {
                     aliceOutNullifierIn
-                    botOutnullifierIn
+                    bobOutNullifierIn
                     bobInNote
                     aliceInNote
                     transactionHash
@@ -24,7 +24,7 @@ export class SubgraphService {
             }
         `;
 
-        const response = await fetch(networkConfig[chainId].drakpoolSubgraphUrl, {
+        const response = await fetch(networkConfig[chainId].drakSwapSubgraphUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ export class SubgraphService {
 
         return {
             txHash: data.data.darkPoolSwaps[0].transactionHash,
-            makerInNote: data.data.darkPoolSwaps[0].aliceInNote,
+            aliceInNote: data.data.darkPoolSwaps[0].aliceInNote,
         };
     }
 }

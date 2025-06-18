@@ -3,6 +3,7 @@ import { DarkSwapContext } from './context/darkSwap.context';
 import { DatabaseService } from './db/database.service';
 import { getConfirmations } from '../config/networkConfig';
 import { WalletMutexService } from './mutex/walletMutex.service';
+import { NoteService } from './note.service';
 import { DarkSwapException } from '../exception/darkSwap.exception';
 import { NoteType } from '../types';
 
@@ -10,10 +11,12 @@ import { NoteType } from '../types';
 export class NotesJoinService {
   private static instance: NotesJoinService;
   private dbService: DatabaseService;
+  private noteService: NoteService;
   private walletMutexService: WalletMutexService;
   private constructor() {
     this.dbService = DatabaseService.getInstance();
     this.walletMutexService = WalletMutexService.getInstance();
+    this.noteService = NoteService.getInstance();
   }
 
   public static getInstance(): NotesJoinService {
@@ -25,23 +28,13 @@ export class NotesJoinService {
 
   private async doJoin(notesToJoin: DarkSwapNote[], darkSwapContext: DarkSwapContext): Promise<DarkSwapNote> {
     const joinService = new JoinService(darkSwapContext.darkSwap);
-    const { context: joinContext, outNotes } = await joinService.prepare(
+    const { context: joinContext, outNote } = await joinService.prepare(
       darkSwapContext.walletAddress, 
       notesToJoin[0],
       notesToJoin[1],
       darkSwapContext.signature);
-    for (const outNote of outNotes) {
-      this.dbService.addNote(
-        darkSwapContext.chainId,
-        darkSwapContext.publicKey,
-        darkSwapContext.walletAddress,
-        NoteType.DARKSWAP,
-        outNote.note,
-        outNote.rho,
-        outNote.asset,
-        outNote.amount,
-        '');
-    }
+      this.noteService.addNote(outNote, darkSwapContext, false);
+
     const mutex = this.walletMutexService.getMutex(darkSwapContext.walletAddress.toLowerCase());
     const tx = await mutex.runExclusive(async () => {
       return await joinService.execute(joinContext);
@@ -54,32 +47,20 @@ export class NotesJoinService {
     for (const note of notesToJoin) {
       this.dbService.updateNoteSpentByWalletAndNoteCommitment(darkSwapContext.walletAddress, darkSwapContext.chainId, note.note);
     }
-    for (const outNote of outNotes) {
-      this.dbService.updateNoteTransactionByWalletAndNoteCommitment(darkSwapContext.walletAddress, darkSwapContext.chainId, outNote.note, tx);
-    }
-    return outNotes[0];
+    this.dbService.updateNoteTransactionByWalletAndNoteCommitment(darkSwapContext.walletAddress, darkSwapContext.chainId, outNote.note, tx);
+    
+    return outNote;
   }
 
   private async dotripleJoin(notesToJoin: DarkSwapNote[], darkSwapContext: DarkSwapContext): Promise<DarkSwapNote> | null {
     const tripleJoinService = new TripleJoinService(darkSwapContext.darkSwap);
-    const { context: joinContext, outNotes } = await tripleJoinService.prepare(
+    const { context: joinContext, outNote } = await tripleJoinService.prepare(
       darkSwapContext.walletAddress, 
       notesToJoin[0],
       notesToJoin[1],
       notesToJoin[2],
       darkSwapContext.signature);
-    for (const outNote of outNotes) {
-      this.dbService.addNote(
-        darkSwapContext.chainId,
-        darkSwapContext.publicKey,
-        darkSwapContext.walletAddress,
-        NoteType.DARKSWAP,
-        outNote.note,
-        outNote.rho,
-        outNote.asset,
-        outNote.amount,
-        '');
-    }
+    this.noteService.addNote(outNote, darkSwapContext, false);
     const mutex = this.walletMutexService.getMutex(darkSwapContext.walletAddress.toLowerCase());
     const tx = await mutex.runExclusive(async () => {
       return await tripleJoinService.execute(joinContext);
@@ -92,10 +73,9 @@ export class NotesJoinService {
     for (const note of notesToJoin) {
       this.dbService.updateNoteSpentByWalletAndNoteCommitment(darkSwapContext.walletAddress, darkSwapContext.chainId, note.note);
     }
-    for (const outNote of outNotes) {
-      this.dbService.updateNoteTransactionByWalletAndNoteCommitment(darkSwapContext.walletAddress, darkSwapContext.chainId, outNote.note, tx);
-    }
-    return outNotes[0];
+    this.dbService.updateNoteTransactionByWalletAndNoteCommitment(darkSwapContext.walletAddress, darkSwapContext.chainId, outNote.note, tx);
+    
+    return outNote;
   }
 
   public async notesJoins(notesToJoin: DarkSwapNote[], darkSwapContext: DarkSwapContext): Promise<DarkSwapNote> | null {

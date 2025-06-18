@@ -57,7 +57,7 @@ export enum NoteType{
 export enum OrderStatus {
     OPEN = 0,
     MATCHED = 1,
-    TAKER_CONFIRMED = 2,
+    BOB_CONFIRMED = 2,
     SETTLED = 3,
     CANCELLED = 4,
     NOT_TRIGGERED = 5,

@@ -115,8 +115,8 @@ export class OrderService {
     }
     
     orderDto.noteCommitment = orderNote.note.toString();
-    //orderDto.nullifier = context.proof.
-    orderDto.feeRatio = String(orderNote.feeRatio);
+    orderDto.nullifier = orderNote.nullifier.toString();
+    orderDto.feeRatio = orderNote.feeRatio.toString();
     orderDto.txHashCreated = tx;
     orderDto.publicKey = darkSwapContext.publicKey;
 

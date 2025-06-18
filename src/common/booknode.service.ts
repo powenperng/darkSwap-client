@@ -2,7 +2,7 @@ import axios from 'axios';
 import { CancelOrderDto } from '../orders/dto/cancelOrder.dto';
 import { MatchedOrderDto } from '../settlement/dto/matchedOder.dto';
 import { SettlementDto } from '../settlement/dto/settlement.dto';
-import { TakerConfirmDto } from '../settlement/dto/takerConfirm.dto';
+import { bobConfirmDto } from '../settlement/dto/bobConfirm.dto';
 import { ConfigLoader } from '../utils/configUtil';
 import { UpdatePriceDto } from '../orders/dto/updatePrice.dto';
 import { OrderDto } from '../orders/dto/order.dto';
@@ -14,13 +14,13 @@ interface BookNodeMatchedOrder {
     chainId: number;
     assetPairId: string;
     orderDirection: number;
-    isMaker: boolean;
+    isAlice: boolean;
     matchedPrice: number;
-    makerAmount: string;
-    makerMatchedAmount: string;
-    takerMatchedAmount: string;
-    makerPublicKey: string;
-    takerSwapMessage: string;
+    aliceAmount: string;
+    aliceMatchedAmount: string;
+    bobMatchedAmount: string;
+    alicePublicKey: string;
+    bobSwapMessage: string;
 }
 
 interface BookNodeCreateOrderDto {
@@ -111,11 +111,11 @@ export class BooknodeService {
             chainId: bookNodeMathedOrderDetail.chainId,
             assetPairId: bookNodeMathedOrderDetail.assetPairId,
             orderDirection: bookNodeMathedOrderDetail.orderDirection,
-            isMaker: bookNodeMathedOrderDetail.isMaker,
-            makerAmount: BigInt(bookNodeMathedOrderDetail.makerAmount),
-            makerMatchedAmount: BigInt(bookNodeMathedOrderDetail.makerMatchedAmount),
-            takerMatchedAmount: BigInt(bookNodeMathedOrderDetail.takerMatchedAmount),
-            takerSwapMessage: bookNodeMathedOrderDetail.takerSwapMessage
+            isAlice: bookNodeMathedOrderDetail.isAlice,
+            aliceAmount: BigInt(bookNodeMathedOrderDetail.aliceAmount),
+            aliceMatchedAmount: BigInt(bookNodeMathedOrderDetail.bobMatchedAmount),
+            bobMatchedAmount: BigInt(bookNodeMathedOrderDetail.bobMatchedAmount),
+            bobSwapMessage: bookNodeMathedOrderDetail.bobSwapMessage
         } as MatchedOrderDto;
     }
 
@@ -165,8 +165,8 @@ export class BooknodeService {
         return result.data;
     }
 
-    public async confirmOrder(takerConfirmDto: TakerConfirmDto): Promise<any> {
-        const result = await this.sendRequest(takerConfirmDto, '/api/orders/confirm');
+    public async confirmOrder(recipientConfirmDto: bobConfirmDto): Promise<any> {
+        const result = await this.sendRequest(recipientConfirmDto, '/api/orders/confirm');
         return result.data;
     }
 

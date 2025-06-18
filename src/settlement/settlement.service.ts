@@ -1,5 +1,5 @@
-import { calcNullifier, DarkPoolTakerSwapMessage, getNullifier, Note } from '@thesingularitynetwork/darkswap-sdk';
-import { deserializeDarkPoolTakerSwapMessage, getNoteOnChainStatusByPublicKey, getNoteOnChainStatusBySignature, hexlify32, MakerSwapService, NoteOnChainStatus, Order, serializeDarkPoolTakerSwapMessage } from '@thesingularitynetwork/singularity-sdk';
+import { calcNullifier, DarkSwapMessage, DarkSwapNote,DarkSwapOrderNote } from '@thesingularitynetwork/darkswap-sdk';
+import { deserializeDarkSwapMessage, getNoteOnChainStatusByPublicKey, getNoteOnChainStatusBySignature, hexlify32, ProSwapService, NoteOnChainStatus, serializeDarkSwapMessage, generateProSwapMessage } from '@thesingularitynetwork/darkswap-sdk';
 import { BooknodeService } from '../common/booknode.service';
 import { DarkSwapContext } from '../common/context/darkSwap.context';
 import { DatabaseService } from '../common/db/database.service';
@@ -11,7 +11,7 @@ import { DarkSwapException } from '../exception/darkSwap.exception';
 import { OrderDto } from '../orders/dto/order.dto';
 import { OrderEventService } from '../orders/orderEvent.service';
 import { OrderDirection, OrderStatus } from '../types';
-import { TakerConfirmDto } from './dto/takerConfirm.dto';
+import { bobConfirmDto } from './dto/bobConfirm.dto';
 import { WalletMutexService } from '../common/mutex/walletMutex.service';
 export class SettlementService {
 
@@ -38,114 +38,116 @@ export class SettlementService {
     return SettlementService.instance;
   }
 
-  private async checkTakerNoteStatus(darkPoolContext: DarkpoolContext, takerSwapMessage: DarkPoolTakerSwapMessage) {
-    const onChainStatus = await getNoteOnChainStatusByPublicKey(darkPoolContext.relayerDarkPool, takerSwapMessage.outNote, takerSwapMessage.publicKey);
-    if (onChainStatus != NoteOnChainStatus.LOCKED) {
-      throw new DarkpoolException("Taker note is not locked");
+  private async checkBobNoteStatus(darkSwapContext: DarkSwapContext, darkSwapMessage: DarkSwapMessage) {
+    const onChainStatus = await getNoteOnChainStatusByPublicKey(darkSwapContext.darkSwap, darkSwapMessage.orderNote, darkSwapMessage.publicKey);
+    if (onChainStatus != NoteOnChainStatus.ACTIVE) {
+      throw new DarkSwapException("counter party's note is not valid");
     }
   }
 
-  private noteDtoToNote(noteDto: NoteDto): Note {
+  private noteDtoToNote(noteDto: NoteDto): DarkSwapNote {
     return {
-      note: noteDto.noteCommitment,
+      note: noteDto.note,
       rho: noteDto.rho,
       asset: noteDto.asset,
-      amount: noteDto.amount
-    } as Note;
+      amount: noteDto.amount,
+    } as DarkSwapNote;
   }
 
-  async makerSwap(orderId: string) {
+  async aliceSwap(orderId: string) {
     const orderInfo = await this.dbService.getOrderByOrderId(orderId);
     await this.orderEventService.logOrderStatusChange(orderId, orderInfo.wallet, orderInfo.chainId, OrderStatus.MATCHED);
 
     const matchedOrderDto = await this.booknodeService.getMatchedOrderDetails(orderInfo);
-    const takerSwapMessage = deserializeDarkPoolTakerSwapMessage(matchedOrderDto.takerSwapMessage);
+    const bobSwapMessage = deserializeDarkSwapMessage(matchedOrderDto.bobSwapMessage);
 
-
-
-    const darkPoolContext = await DarkpoolContext.createDarkpoolContext(orderInfo.chainId, orderInfo.wallet);
+    const darkSwapContext = await DarkSwapContext.createDarkSwapContext(orderInfo.chainId, orderInfo.wallet);
     //check note status
 
     const rawNote = await this.dbService.getNoteByCommitment(orderInfo.noteCommitment);
-    const note = this.noteDtoToNote(rawNote);
+    const orderNote = this.noteDtoToNote(rawNote);
     const makerNoteOnChainStatus = await getNoteOnChainStatusBySignature(
-      darkPoolContext.relayerDarkPool,
-      note,
-      darkPoolContext.signature
+      darkSwapContext.darkSwap,
+      orderNote,
+      darkSwapContext.signature
     );
-    if (makerNoteOnChainStatus != NoteOnChainStatus.LOCKED) {
-      const makerNullifier = await getNullifier({
-        rho: note.rho,
-        signedMessage: darkPoolContext.signature
-      });
-      const takerNullifier = hexlify32(calcNullifier(takerSwapMessage.outNote.rho, takerSwapMessage.publicKey));
-      const subgraphData = await this.subgraphService.getSwapTxByNullifiers(orderInfo.chainId, makerNullifier, takerNullifier);
+    if (makerNoteOnChainStatus != NoteOnChainStatus.ACTIVE) {
+      const aliceNullifier = orderInfo.nullifier;
+      const bobNullifier = hexlify32(calcNullifier(bobSwapMessage.orderNote.rho, bobSwapMessage.publicKey));
+      const subgraphData = await this.subgraphService.getSwapTxByNullifiers(orderInfo.chainId, aliceNullifier, bobNullifier);
       if (subgraphData) {
         console.log('Order settle recovered for ', orderId);
-        const incomingNoteDto = await this.dbService.getNoteByCommitment(BigInt(subgraphData.makerInNote).toString());
+        const incomingNoteDto = await this.dbService.getNoteByCommitment(BigInt(subgraphData.aliceInNote).toString());
         const incomingNote = this.noteDtoToNote(incomingNoteDto);
-        await this.updateMakerOrderData(orderInfo, note, incomingNote, darkPoolContext, subgraphData.txHash);
+        await this.updateAliceOrderData(orderInfo, {...orderNote, feeRatio: BigInt(orderInfo.feeRatio)}, [incomingNote], darkSwapContext, subgraphData.txHash);
         return;
       }
-      throw new DarkpoolException(`Note ${note.note} is not locked and no settlement transaction found`);
+      throw new DarkSwapException(`Order Note ${orderNote.note} is not active and no settlement transaction found`);
     }
 
-    await this.checkTakerNoteStatus(darkPoolContext, takerSwapMessage);
+    await this.checkBobNoteStatus(darkSwapContext, bobSwapMessage);
 
     const assetPair = await this.dbService.getAssetPairById(orderInfo.assetPairId, orderInfo.chainId);
-    const takerAsset = orderInfo.orderDirection === OrderDirection.BUY ? assetPair.quoteAddress : assetPair.baseAddress;
+    const bobAsset = orderInfo.orderDirection === OrderDirection.BUY ? assetPair.quoteAddress : assetPair.baseAddress;
 
-    const order = {
-      orderId: orderId,
-      makerAsset: note.asset,
-      makerAmount: matchedOrderDto.makerMatchedAmount,
-      takerAsset: takerAsset,
-      takerAmount: matchedOrderDto.takerMatchedAmount
-    } as Order;
-    const makerSwapService = new MakerSwapService(darkPoolContext.relayerDarkPool);
-    const { context, outNotes } = await makerSwapService.prepare(order, note, takerSwapMessage, darkPoolContext.signature);
-    this.noteService.addNotes(outNotes, darkPoolContext);
-    this.dbService.updateOrderIncomingNoteCommitment(orderId, outNotes[0].note);
+    const proSwapService = new ProSwapService(darkSwapContext.darkSwap);
+    const {context, swapInNote, changeNote} = await proSwapService.prepare(
+      darkSwapContext.walletAddress,
+      {...orderNote, feeRatio: BigInt(orderInfo.feeRatio)},
+      matchedOrderDto.aliceMatchedAmount,
+      matchedOrderDto.bobMatchedAmount,
+      bobSwapMessage.address,
+      bobSwapMessage,
+      darkSwapContext.signature);
 
-    await makerSwapService.generateProof(context);
-    const mutex = this.walletMutexService.getMutex(darkPoolContext.walletAddress.toLowerCase());
+
+
+
+    this.noteService.addNotes([swapInNote, changeNote], darkSwapContext,false);
+    this.dbService.updateOrderIncomingNoteCommitment(orderId, swapInNote.note);
+
+    const mutex = this.walletMutexService.getMutex(darkSwapContext.walletAddress.toLowerCase());
     const tx = await mutex.runExclusive(async () => {
-      return await makerSwapService.execute(context);
+      return await proSwapService.execute(context);
     });
-    const receipt = await darkPoolContext.relayerDarkPool.provider.waitForTransaction(tx, getConfirmations(darkPoolContext.chainId));
+    const receipt = await darkSwapContext.darkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
     if (receipt.status !== 1) {
-      throw new DarkpoolException("Maker swap failed with tx hash " + tx);
+      throw new DarkSwapException("pro swap failed with tx hash " + tx);
     }
 
-    await this.updateMakerOrderData(orderInfo, note, outNotes[0], darkPoolContext, tx);
+    await this.updateAliceOrderData(orderInfo, {...orderNote, feeRatio: BigInt(orderInfo.feeRatio)}, [swapInNote,changeNote], darkSwapContext, tx);
   }
 
-  private async updateMakerOrderData(order: OrderDto, makerOutNote: Note, makerInNote: Note, darkPoolContext: DarkpoolContext, txHash: string) {
-    this.noteService.setNoteUsed(makerOutNote, darkPoolContext);
-    this.noteService.setNotesActive([makerInNote], darkPoolContext, txHash);
+  private async updateAliceOrderData(order: OrderDto, aliceOutNote: DarkSwapOrderNote, aliceInNotes: DarkSwapNote[], darkSwapContext: DarkSwapContext, txHash: string) {
+    await this.noteService.setNoteUsed(aliceOutNote, darkSwapContext);
+    
+    for (const note of aliceInNotes) {
+      if (note && note.amount !== 0n) {
+        await this.noteService.setNoteActive(note, darkSwapContext, txHash);
+      }
+    }
 
     await this.dbService.updateOrderSettlementTransaction(order.orderId, txHash);
-    //send settle info to booknode
     await this.booknodeService.settleOrder(order, txHash);
     console.log('Order settled for ', order.orderId);
     await this.orderEventService.logOrderStatusChange(order.orderId, order.wallet, order.chainId, OrderStatus.SETTLED);
   }
 
-  async takerPostSettlement(orderId: string, txHash: string) {
+  async bobPostSettlement(orderId: string, txHash: string) {
     //TODO 
     const orderInfo = await this.dbService.getOrderByOrderId(orderId);
     const outgoingNote = await this.dbService.getNoteByCommitment(orderInfo.noteCommitment);
-    const darkPoolContext = await DarkpoolContext.createDarkpoolContext(orderInfo.chainId, orderInfo.wallet);
+    const darkPoolContext = await DarkSwapContext.createDarkSwapContext(orderInfo.chainId, orderInfo.wallet);
     this.noteService.setNoteUsed(this.noteDtoToNote(outgoingNote), darkPoolContext);
     if (orderInfo.incomingNoteCommitment) {
       const incomingNote = await this.dbService.getNoteByCommitment(orderInfo.incomingNoteCommitment);
-      this.dbService.updateNoteTransactionByWalletAndNoteCommitment(orderInfo.wallet, orderInfo.chainId, incomingNote.noteCommitment, txHash);
+      await this.dbService.updateNoteTransactionByWalletAndNoteCommitment(orderInfo.wallet, orderInfo.chainId, incomingNote.note, txHash);
     }
     console.log('Post settlement for ', orderId);
     await this.orderEventService.logOrderStatusChange(orderId, orderInfo.wallet, orderInfo.chainId, OrderStatus.SETTLED);
   }
 
-  async matchedForMaker(orderId: string) {
+  async matchedForAlice(orderId: string) {
     const orderInfo = await this.dbService.getOrderByOrderId(orderId);
     if (orderInfo && orderInfo.status === OrderStatus.OPEN) {
       await this.orderEventService.logOrderStatusChange(orderId, orderInfo.wallet, orderInfo.chainId, OrderStatus.MATCHED);
@@ -155,41 +157,28 @@ export class SettlementService {
     }
   }
 
-  async takerConfirm(orderId: string) {
+  async bobConfirm(orderId: string) {
     const orderInfo = await this.dbService.getOrderByOrderId(orderId);
     const rawNote = await this.dbService.getNoteByCommitment(orderInfo.noteCommitment);
-    const note = {
-      note: rawNote.noteCommitment,
+    const orderNote = {
+      note: rawNote.note,
       rho: rawNote.rho,
       asset: rawNote.asset,
-      amount: rawNote.amount
-    } as Note;
-    const assetPair = await this.dbService.getAssetPairById(orderInfo.assetPairId, orderInfo.chainId);
-    const takerAsset = orderInfo.orderDirection === OrderDirection.BUY ? assetPair.quoteAddress : assetPair.baseAddress;
-    const makerAsset = orderInfo.orderDirection === OrderDirection.BUY ? assetPair.baseAddress : assetPair.quoteAddress;
-    const darkPoolContext = await DarkpoolContext.createDarkpoolContext(orderInfo.chainId, orderInfo.wallet);
+      amount: rawNote.amount,
+      feeRatio: BigInt(orderInfo.feeRatio)
+    } as DarkSwapOrderNote;
 
-    const matchedOrderDto = await this.booknodeService.getMatchedOrderDetails(orderInfo);
+    const darkSwapContext = await DarkSwapContext.createDarkSwapContext(orderInfo.chainId, orderInfo.wallet);
+    const { incomingNote, bobSwapMessage } = await generateProSwapMessage(darkSwapContext.walletAddress, )
 
-    const order = {
-      orderId: orderId,
-      makerAsset: makerAsset,
-      makerAmount: matchedOrderDto.makerMatchedAmount,
-      takerAsset: takerAsset,
-      takerAmount: matchedOrderDto.takerMatchedAmount
-    } as Order;
-
-    const makerSwapService = new MakerSwapService(darkPoolContext.relayerDarkPool);
-    const { incomingNote, bobSwapMessage } = await makerSwapService.getFullMatchSwapMessage(order, note, darkPoolContext.signature);
-
-    this.noteService.addNotes([incomingNote], darkPoolContext);
+    this.noteService.addNote(incomingNote, darkSwapContext,false);
 
     const takerConfirmDto = {
       chainId: orderInfo.chainId,
       wallet: orderInfo.wallet,
       orderId: orderId,
-      swapMessage: serializeDarkPoolTakerSwapMessage(bobSwapMessage)
-    } as TakerConfirmDto;
+      swapMessage: serializeDarkSwapMessage(bobSwapMessage)
+    } as bobConfirmDto;
 
     await this.booknodeService.confirmOrder(takerConfirmDto);
     console.log('Order confirmed for ', orderId);

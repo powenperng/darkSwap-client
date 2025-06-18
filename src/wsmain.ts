@@ -6,13 +6,13 @@ import { OrderService } from './orders/order.service';
 
 
 enum EventType {
-    OrderMatched = 1,
+    OrderMatchedAsBob = 1,
     OrderConfirmed = 2,
     OrderSettled = 3,
     AssetPairCreated = 4,
     orderCancelled = 5,
     Unknown = 0,
-    OrderMatchedForMaker = 6,
+    OrderMatchedAsAlice = 6,
     OrderTriggered = 7
 }
 
@@ -36,21 +36,21 @@ async function processMessage(message: QueuedMessage): Promise<void> {
         const orderService = OrderService.getInstance();
 
         switch (notificationEvent.eventType) {
-            case EventType.OrderMatched:
-                console.log('Event for order matched: ', notificationEvent.orderId);
-                await settlementService.takerConfirm(notificationEvent.orderId);
+            case EventType.OrderMatchedAsBob:
+                console.log('Event for order matched as Bob: ', notificationEvent.orderId);
+                await settlementService.bobConfirm(notificationEvent.orderId);
                 break;
-            case EventType.OrderMatchedForMaker:
-                console.log('Event for order matched for maker: ', notificationEvent.orderId);
-                await settlementService.matchedForMaker(notificationEvent.orderId);
+            case EventType.OrderMatchedAsAlice:
+                console.log('Event for order matched as Alice: ', notificationEvent.orderId);
+                await settlementService.matchedForAlice(notificationEvent.orderId);
                 break;
             case EventType.OrderConfirmed:
                 console.log('Event for order confirmed: ', notificationEvent.orderId);
-                await settlementService.makerSwap(notificationEvent.orderId);
+                await settlementService.aliceSwap(notificationEvent.orderId);
                 break;
             case EventType.OrderSettled:
                 console.log('Event for order settled: ', notificationEvent.orderId);
-                await settlementService.takerPostSettlement(notificationEvent.orderId, notificationEvent.txHash || '');
+                await settlementService.bobPostSettlement(notificationEvent.orderId, notificationEvent.txHash || '');
                 break;
             case EventType.AssetPairCreated:
                 await assetPairService.syncAssetPair(notificationEvent.assetPairId, notificationEvent.chainId);

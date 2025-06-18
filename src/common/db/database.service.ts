@@ -468,7 +468,7 @@ export class DatabaseService {
   public updateOrderConfirmedAndIncomingNoteCommitment(orderId: string, incomingNoteCommitment: bigint) {
     const query = `UPDATE ORDERS SET status = ?, incomingNoteCommitment = ? WHERE orderId = ?`;
     const stmt = this.db.prepare(query);
-    stmt.run(OrderStatus.TAKER_CONFIRMED, incomingNoteCommitment.toString(), orderId);
+    stmt.run(OrderStatus.BOB_CONFIRMED, incomingNoteCommitment.toString(), orderId);
   }
 
   public updateOrderTriggered(orderId: string) {

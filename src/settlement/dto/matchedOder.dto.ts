@@ -4,12 +4,12 @@ export class MatchedOrderDto {
     chainId: number;
     assetPairId: string;
     orderDirection: number;
-    isMaker: boolean;
-    makerAmount: bigint;
-    makerMatchedAmount: bigint;
-    takerMatchedAmount: bigint;
-    makerPublicKey: string;
-    takerPublicKey: string;
-    makerSwapMessage: string;
-    takerSwapMessage: string;
+    isAlice: boolean;
+    aliceAmount: bigint;
+    aliceMatchedAmount: bigint;
+    bobMatchedAmount: bigint;
+    alicePublicKey: string;
+    bobPublicKey: string;
+    aliceSwapMessage: string;
+    bobSwapMessage: string;
 }
