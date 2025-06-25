@@ -151,9 +151,6 @@ export class OrderService {
   // Method to cancel an order
   async cancelOrder(orderId: string, darkSwapContext: DarkSwapContext, byNotification: boolean = false) {
 
-    const currentBalanceNote = await this.notesJoinService.getCurrentBalanceNote(darkSwapContext, darkSwapContext.walletAddress);
-    const proCancelOrderService = new ProCancelOrderService(darkSwapContext.darkSwap);
-
     const order = await this.dbService.getOrderByOrderId(orderId);
     if (!order) {
       throw new DarkSwapException('Order not found');
@@ -176,7 +173,8 @@ export class OrderService {
       feeRatio: BigInt(order.feeRatio),
     } as DarkSwapOrderNote;
 
-
+    const currentBalanceNote = await this.notesJoinService.getCurrentBalanceNote(darkSwapContext, note.asset);
+    const proCancelOrderService = new ProCancelOrderService(darkSwapContext.darkSwap);
 
     const { context, newBalance } = await proCancelOrderService.prepare(
       darkSwapContext.walletAddress,

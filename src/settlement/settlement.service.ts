@@ -1,4 +1,4 @@
-import { calcNullifier, DarkSwapMessage, DarkSwapNote,DarkSwapOrderNote } from '@thesingularitynetwork/darkswap-sdk';
+import { calcNullifier, DarkSwapMessage, DarkSwapNote, DarkSwapOrderNote } from '@thesingularitynetwork/darkswap-sdk';
 import { deserializeDarkSwapMessage, getNoteOnChainStatusByPublicKey, getNoteOnChainStatusBySignature, hexlify32, ProSwapService, NoteOnChainStatus, serializeDarkSwapMessage } from '@thesingularitynetwork/darkswap-sdk';
 import { BooknodeService } from '../common/booknode.service';
 import { DarkSwapContext } from '../common/context/darkSwap.context';
@@ -27,7 +27,7 @@ export class SettlementService {
     this.dbService = DatabaseService.getInstance();
     this.booknodeService = BooknodeService.getInstance();
     this.noteService = NoteService.getInstance();
-    this.noteJoinService = NotesJoinService.getInstance(); 
+    this.noteJoinService = NotesJoinService.getInstance();
     this.orderEventService = OrderEventService.getInstance();
     this.subgraphService = SubgraphService.getInstance();
   }
@@ -80,7 +80,13 @@ export class SettlementService {
         console.log('Order settle recovered for ', orderInfo.orderId);
         const incomingNoteDto = await this.dbService.getNoteByCommitment(BigInt(subgraphData.aliceInNote).toString());
         const incomingNote = this.noteDtoToNote(incomingNoteDto);
-        await this.updateAliceOrderData(orderInfo, {...orderNote, feeRatio: BigInt(orderInfo.feeRatio)}, [incomingNote], darkSwapContext, subgraphData.txHash);
+        const unprocessedNotes = [incomingNote];
+        if (BigInt(subgraphData.aliceChangeNote) !== 0n) {
+          const changeNoteDto = await this.dbService.getNoteByCommitment(BigInt(subgraphData.aliceChangeNote).toString());
+          const changeNote = this.noteDtoToNote(changeNoteDto);
+          unprocessedNotes.push(changeNote);
+        }
+        await this.updateAliceOrderData(orderInfo, { ...orderNote, feeRatio: BigInt(orderInfo.feeRatio) }, unprocessedNotes, darkSwapContext, subgraphData.txHash);
         return;
       }
       throw new DarkSwapException(`Order Note ${orderNote.note} is not active and no settlement transaction found`);
@@ -92,41 +98,40 @@ export class SettlementService {
     const bobAsset = orderInfo.orderDirection === OrderDirection.BUY ? assetPair.quoteAddress : assetPair.baseAddress;
 
     const proSwapService = new ProSwapService(darkSwapContext.darkSwap);
-    const {context, swapInNote, changeNote} = await proSwapService.prepare(
+    const { context, swapInNote, changeNote } = await proSwapService.prepare(
       darkSwapContext.walletAddress,
-      {...orderNote, feeRatio: BigInt(orderInfo.feeRatio)},
+      { ...orderNote, feeRatio: BigInt(orderInfo.feeRatio) },
       bobSwapMessage.address,
       bobSwapMessage,
       darkSwapContext.signature);
 
-    this.noteService.addNotes([swapInNote, changeNote], darkSwapContext,false);
+    this.noteService.addNotes([swapInNote, changeNote], darkSwapContext, false);
     this.dbService.updateOrderIncomingNoteCommitment(orderInfo.orderId, swapInNote.note);
 
     const tx = await proSwapService.execute(context);
-    
+
     const receipt = await darkSwapContext.darkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
     if (receipt.status !== 1) {
       throw new DarkSwapException("pro swap failed with tx hash " + tx);
     }
 
-    await this.updateAliceOrderData(orderInfo, {...orderNote, feeRatio: BigInt(orderInfo.feeRatio)}, [swapInNote,changeNote], darkSwapContext, tx);
+    await this.updateAliceOrderData(orderInfo, { ...orderNote, feeRatio: BigInt(orderInfo.feeRatio) }, [swapInNote, changeNote], darkSwapContext, tx);
   }
 
   private async updateAliceOrderData(order: OrderDto, aliceOutNote: DarkSwapOrderNote, aliceInNotes: DarkSwapNote[], darkSwapContext: DarkSwapContext, txHash: string) {
-    await this.noteService.setNoteUsed(aliceOutNote, darkSwapContext);
-    
-    for (const note of aliceInNotes) {
-      if (note && note.amount !== 0n) {
-        await this.noteService.setNoteActive(note, darkSwapContext, txHash);
-        await this.noteJoinService.getCurrentBalanceNote(darkSwapContext,note.asset,[note]);
-      }
-    }
+    this.noteService.setNoteUsed(aliceOutNote, darkSwapContext);
 
     await this.dbService.updateOrderSettlementTransaction(order.orderId, txHash);
     await this.booknodeService.settleOrder(order, txHash);
     console.log('Order settled for ', order.orderId);
     await this.orderEventService.logOrderStatusChange(order.orderId, order.wallet, order.chainId, OrderStatus.SETTLED);
 
+    for (const note of aliceInNotes) {
+      if (note && note.amount !== 0n) {
+        await this.noteService.setNoteActive(note, darkSwapContext, txHash);
+        await this.noteJoinService.getCurrentBalanceNote(darkSwapContext, note.asset);
+      }
+    }
   }
 
   async bobPostSettlement(orderInfo: OrderDto, txHash: string) {
@@ -152,7 +157,7 @@ export class SettlementService {
     }
   }
 
-  async bobConfirm(orderInfo:OrderDto) {
+  async bobConfirm(orderInfo: OrderDto) {
     const assetPair = await this.dbService.getAssetPairById(orderInfo.assetPairId, orderInfo.chainId);
 
     const rawNote = await this.dbService.getNoteByCommitment(orderInfo.noteCommitment);
@@ -164,8 +169,8 @@ export class SettlementService {
       feeRatio: BigInt(orderInfo.feeRatio),
       address: orderInfo.wallet
     } as DarkSwapOrderNote;
-    
-    const swapInAsset = orderNote.asset === assetPair.quoteAddress? assetPair.baseAddress : assetPair.quoteAddress;
+
+    const swapInAsset = orderNote.asset === assetPair.quoteAddress ? assetPair.baseAddress : assetPair.quoteAddress;
 
     const darkSwapContext = await DarkSwapContext.createDarkSwapContext(orderInfo.chainId, orderInfo.wallet);
     const darkSwapMessage = await ProSwapService.prepareProSwapMessageForBob(
@@ -176,7 +181,7 @@ export class SettlementService {
       darkSwapContext.signature
     );
 
-    this.noteService.addNote(darkSwapMessage.inNote, darkSwapContext,false);
+    this.noteService.addNote(darkSwapMessage.inNote, darkSwapContext, false);
 
     const bobConfirmDto = {
       chainId: orderInfo.chainId,

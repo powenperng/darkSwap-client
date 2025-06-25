@@ -71,32 +71,39 @@ export class NotesJoinService {
   }
 
   public async notesJoins(notesToJoin: DarkSwapNote[], darkSwapContext: DarkSwapContext): Promise<DarkSwapNote> | null {
+    const finalNotesToJoin: DarkSwapNote[] = [];
+
     for (const note of notesToJoin) {
       const noteOnChainStatus = await getNoteOnChainStatusBySignature(
         darkSwapContext.darkSwap,
         note,
         darkSwapContext.signature,
       );
-      if (noteOnChainStatus != NoteOnChainStatus.ACTIVE) {
+      if (noteOnChainStatus == NoteOnChainStatus.ACTIVE) {
+        finalNotesToJoin.push(note);
+      } else if (noteOnChainStatus == NoteOnChainStatus.SPENT) {
+        //update note status to spent
+        this.dbService.updateNoteSpentByWalletAndNoteCommitment(darkSwapContext.walletAddress, darkSwapContext.chainId, note.note);
+      } else {
         console.error(`Note ${note.note} is not active`);
         throw new Error(`Failed to combine notes, one of the notes is not active!`);
       }
     }
 
-    const notsSize = notesToJoin.length;
+    const notsSize = finalNotesToJoin.length;
     let result: DarkSwapNote
     if (notsSize < 2) {
-      result = notesToJoin[0];
+      result = finalNotesToJoin[0];
     } else if (notsSize === 2) {
-      result = await this.doJoin(notesToJoin, darkSwapContext);
+      result = await this.doJoin(finalNotesToJoin, darkSwapContext);
     } else {
-      result = await this.dotripleJoin(notesToJoin.slice(0, 3), darkSwapContext);
+      result = await this.dotripleJoin(finalNotesToJoin.slice(0, 3), darkSwapContext);
       let i: number;
       for (i = 3; i + 1 < notsSize; i += 2) {
-        result = await this.dotripleJoin([result, notesToJoin[i], notesToJoin[i + 1]], darkSwapContext);
+        result = await this.dotripleJoin([result, finalNotesToJoin[i], finalNotesToJoin[i + 1]], darkSwapContext);
       }
       if (i + 1 === notsSize) {
-        result = await this.doJoin([result, notesToJoin[i]], darkSwapContext);
+        result = await this.doJoin([result, finalNotesToJoin[i]], darkSwapContext);
       }
     }
     return result;
@@ -118,7 +125,12 @@ export class NotesJoinService {
     }));
 
     if (notesToJoin) {
-      darkSwapNotes.push(...notesToJoin);
+      //for each note in notesToJoin, check if the note asset is the same as the asset and the note is not in darkSwapNotes
+      for (const note of notesToJoin) {
+        if (note.asset.toLowerCase() === asset.toLowerCase() && !darkSwapNotes.some(n => n.note === note.note)) {
+          darkSwapNotes.push(note);
+        }
+      }
     }
 
     if (darkSwapNotes.length > 1) {

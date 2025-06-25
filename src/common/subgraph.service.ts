@@ -11,14 +11,15 @@ export class SubgraphService {
     }
 
 
-    async getSwapTxByNullifiers(chainId: number, aliceNullifier: string, bobNullifier: string): Promise<{ txHash: string, aliceInNote: string }> {
+    async getSwapTxByNullifiers(chainId: number, aliceNullifier: string, bobNullifier: string): Promise<{ txHash: string, aliceInNote: string, aliceChangeNote: string }> {
         const query = `
             query findSwapByNullifiers{
-                darkSwaps(where: {aliceOutNullifierIn: "${aliceNullifier}", bobOutNullifierIn: "${bobNullifier}"}) {
-                    aliceOutNullifierIn
-                    bobOutNullifierIn
+                darkSwapProSwaps(where: {aliceOutNullifier: "${aliceNullifier}", bobOutNullifier: "${bobNullifier}"}) {
+                    aliceOutNullifier
+                    bobOutNullifier
                     bobInNote
                     aliceInNote
+                    aliceChangeNote
                     transactionHash
                 }
             }
@@ -34,13 +35,14 @@ export class SubgraphService {
 
         const data = await response.json();
 
-        if (!data || !data.data || !data.data.darkSwaps || data.data.darkSwaps.length === 0) {
+        if (!data || !data.data || !data.data.darkSwapProSwaps || data.data.darkSwapProSwaps.length === 0) {
             return null;
         }
 
         return {
-            txHash: data.data.darkSwaps[0].transactionHash,
-            aliceInNote: data.data.darkSwaps[0].aliceInNote,
+            txHash: data.data.darkSwapProSwaps[0].transactionHash,
+            aliceInNote: data.data.darkSwapProSwaps[0].aliceInNote,
+            aliceChangeNote: data.data.darkSwapProSwaps[0].aliceChangeNote,
         };
     }
 }
