@@ -21,7 +21,7 @@ export class NoteService {
   public async addNotes(notes: DarkSwapNote[], darkSwapContext: DarkSwapContext, isOrderNote: boolean) {
     for (const note of notes) {
       if (note && note.amount !== 0n) {
-        await this.addNote(note, darkSwapContext, isOrderNote);
+        this.addNote(note, darkSwapContext, isOrderNote);
       }
     }
   }

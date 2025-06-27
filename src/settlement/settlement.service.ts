@@ -105,7 +105,11 @@ export class SettlementService {
       bobSwapMessage,
       darkSwapContext.signature);
 
-    this.noteService.addNotes([swapInNote, changeNote], darkSwapContext, false);
+    const notesToAdd = [swapInNote];
+    if (changeNote.amount !== 0n) {
+      notesToAdd.push(changeNote);
+    }
+    this.noteService.addNotes(notesToAdd, darkSwapContext, false);
     this.dbService.updateOrderIncomingNoteCommitment(orderInfo.orderId, swapInNote.note);
 
     const tx = await proSwapService.execute(context);
@@ -115,7 +119,7 @@ export class SettlementService {
       throw new DarkSwapException("pro swap failed with tx hash " + tx);
     }
 
-    await this.updateAliceOrderData(orderInfo, { ...orderNote, feeRatio: BigInt(orderInfo.feeRatio) }, [swapInNote, changeNote], darkSwapContext, tx);
+    await this.updateAliceOrderData(orderInfo, { ...orderNote, feeRatio: BigInt(orderInfo.feeRatio) }, notesToAdd, darkSwapContext, tx);
   }
 
   private async updateAliceOrderData(order: OrderDto, aliceOutNote: DarkSwapOrderNote, aliceInNotes: DarkSwapNote[], darkSwapContext: DarkSwapContext, txHash: string) {
