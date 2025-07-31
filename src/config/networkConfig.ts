@@ -7,7 +7,7 @@ const confirmationsConfig: { [chainId: number]: number } = {
   [ChainId.MAINNET]: 12,
   [ChainId.ARBITRUM_ONE]: 12,
   [ChainId.BASE]: 12,
-  [ChainId.SEPOLIA]: 6,
+  [ChainId.SEPOLIA]: 3,
   [ChainId.HARDHAT]: 3,
   [ChainId.HARDHAT_ARBITRUM]: 3,
 }
