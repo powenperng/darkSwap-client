@@ -10,15 +10,17 @@ export class DarkSwapContext {
     publicKey: string
     darkSwap: DarkSwap
     relayerDarkSwap: DarkSwap
+    relayerAddress: string
     signature: string
 
-    private constructor(chain: number, wallet: string, signer: Signer, pubKey: string, darkSwap: DarkSwap, relayerDarkSwap: DarkSwap, signature: string) {
+    private constructor(chain: number, wallet: string, signer: Signer, pubKey: string, darkSwap: DarkSwap, relayerDarkSwap: DarkSwap, relayerAddress: string, signature: string) {
         this.chainId = chain
         this.walletAddress = wallet
         this.signer = signer
         this.publicKey = pubKey
         this.darkSwap = darkSwap
         this.relayerDarkSwap = relayerDarkSwap
+        this.relayerAddress = relayerAddress
         this.signature = signature
     }
 
@@ -26,6 +28,7 @@ export class DarkSwapContext {
         const wallet = getAddress(walletIn.toLowerCase());
         const [signer, pubKey] = RpcManager.getInstance().getSignerAndPublicKey(wallet, chain)
         const relayerSigner = RpcManager.getInstance().getSignerForUserSwapRelayer(chain)
+        const relayerAddress = relayerSigner ? await relayerSigner.getAddress() : wallet
 
         const darkSwap = getDarkSwap(chain, signer)
         const relayerDarkSwap = relayerSigner ? getDarkSwap(chain, relayerSigner) : darkSwap
@@ -48,6 +51,6 @@ export class DarkSwapContext {
         };
 
         const signature = await signer.signTypedData(domain, types, value);
-        return new DarkSwapContext(chain, wallet, signer, pubKey, darkSwap, relayerDarkSwap, signature)
+        return new DarkSwapContext(chain, wallet, signer, pubKey, darkSwap, relayerDarkSwap, relayerAddress.toLowerCase(), signature)
     }
 } 
