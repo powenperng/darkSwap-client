@@ -23,7 +23,7 @@ export class NotesJoinService {
   }
 
   private async doJoin(notesToJoin: DarkSwapNote[], darkSwapContext: DarkSwapContext): Promise<DarkSwapNote> {
-    const joinService = new JoinService(darkSwapContext.relayerDarkSwap);
+    const joinService = new JoinService(darkSwapContext.darkSwap);
     const { context: joinContext, outNote } = await joinService.prepare(
       darkSwapContext.walletAddress,
       notesToJoin[0],
@@ -34,7 +34,7 @@ export class NotesJoinService {
     const tx = await joinService.execute(joinContext);
 
     //check if tx is success
-    const receipt = await darkSwapContext.relayerDarkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
+    const receipt = await darkSwapContext.darkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
     if (receipt.status !== 1) {
       throw new DarkSwapException("Join failed with tx hash " + tx);
     }
@@ -47,7 +47,7 @@ export class NotesJoinService {
   }
 
   private async dotripleJoin(notesToJoin: DarkSwapNote[], darkSwapContext: DarkSwapContext): Promise<DarkSwapNote> | null {
-    const tripleJoinService = new TripleJoinService(darkSwapContext.relayerDarkSwap);
+    const tripleJoinService = new TripleJoinService(darkSwapContext.darkSwap);
     const { context: joinContext, outNote } = await tripleJoinService.prepare(
       darkSwapContext.walletAddress,
       notesToJoin[0],
@@ -58,7 +58,7 @@ export class NotesJoinService {
     const tx = await tripleJoinService.execute(joinContext);
 
     //check if tx is success
-    const receipt = await darkSwapContext.relayerDarkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
+    const receipt = await darkSwapContext.darkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
     if (receipt.status !== 1) {
       throw new DarkSwapException("Join failed with tx hash " + tx);
     }

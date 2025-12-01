@@ -42,7 +42,7 @@ export class OrderController {
     }
 
     const context = await DarkSwapContext.createDarkSwapContext(orderDto.chainId, orderDto.wallet);
-    const mutex = this.walletMutexService.getMutex(context.chainId, context.relayerAddress.toLowerCase());
+    const mutex = this.walletMutexService.getMutex(context.chainId, context.walletAddress.toLowerCase());
     await mutex.runExclusive(async () => {
       await this.orderService.createOrder(orderDto, context);
     });
@@ -56,7 +56,7 @@ export class OrderController {
   })
   async cancelOrder(@Body() cancelOrderDto: CancelOrderDto) {
     const context = await DarkSwapContext.createDarkSwapContext(cancelOrderDto.chainId, cancelOrderDto.wallet);
-    const mutex = this.walletMutexService.getMutex(context.chainId, context.relayerAddress.toLowerCase());
+    const mutex = this.walletMutexService.getMutex(context.chainId, context.walletAddress.toLowerCase());
     await mutex.runExclusive(async () => {
       await this.orderService.cancelOrder(cancelOrderDto.orderId, context);
     });
