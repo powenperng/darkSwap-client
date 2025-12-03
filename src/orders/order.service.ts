@@ -68,7 +68,7 @@ export class OrderService {
       throw new DarkSwapException(`Insufficient Asset ${outAsset}`);
     }
 
-    const proCreateOrderService = new ProCreateOrderService(darkSwapContext.relayerDarkSwap);
+    const proCreateOrderService = new ProCreateOrderService(darkSwapContext.darkSwap);
     const { context, orderNote, newBalance } = await proCreateOrderService.prepare(
       darkSwapContext.walletAddress,
       outAsset,
@@ -84,7 +84,7 @@ export class OrderService {
     }
 
     const tx = await proCreateOrderService.execute(context);
-    const receipt = await darkSwapContext.relayerDarkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
+    const receipt = await darkSwapContext.darkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
     if (receipt.status !== 1) {
       throw new DarkSwapException("Order creation failed");
     }
@@ -168,7 +168,7 @@ export class OrderService {
     } as DarkSwapOrderNote;
 
     const currentBalanceNote = await this.notesJoinService.getCurrentBalanceNote(darkSwapContext, note.asset);
-    const proCancelOrderService = new ProCancelOrderService(darkSwapContext.relayerDarkSwap);
+    const proCancelOrderService = new ProCancelOrderService(darkSwapContext.darkSwap);
 
     const { context, newBalance } = await proCancelOrderService.prepare(
       darkSwapContext.walletAddress,
@@ -178,7 +178,7 @@ export class OrderService {
     );
 
     const tx = await proCancelOrderService.execute(context);
-    const receipt = await darkSwapContext.relayerDarkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
+    const receipt = await darkSwapContext.darkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
     if (receipt.status !== 1) {
       throw new DarkSwapException("Order cancellation failed");
     }

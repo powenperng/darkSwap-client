@@ -49,7 +49,7 @@ export class BasicService {
 
   // Method to withdraw funds
   async withdraw(darkSwapContext: DarkSwapContext, asset: Token, amount: bigint) {
-    const withdrawService = new WithdrawService(darkSwapContext.relayerDarkSwap);
+    const withdrawService = new WithdrawService(darkSwapContext.darkSwap);
 
     const currentBalanceNote = await this.notesJoinService.getCurrentBalanceNote(darkSwapContext, asset.address);
 
@@ -69,7 +69,7 @@ export class BasicService {
 
     const tx = await withdrawService.execute(withdrawContext);
 
-    const receipt = await darkSwapContext.relayerDarkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
+    const receipt = await darkSwapContext.darkSwap.provider.waitForTransaction(tx, getConfirmations(darkSwapContext.chainId));
     if (receipt.status !== 1) {
       throw new Error("Withdraw failed");
     }
