@@ -143,9 +143,10 @@ export class SettlementService {
     const outgoingNote = await this.dbService.getNoteByCommitment(orderInfo.noteCommitment);
     const darkSwapContext = await DarkSwapContext.createDarkSwapContext(orderInfo.chainId, orderInfo.wallet);
     this.noteService.setNoteUsed(this.noteDtoToNote(outgoingNote), darkSwapContext);
+    await this.dbService.updateOrderSettlementTransaction(orderInfo.orderId, txHash);
     if (orderInfo.incomingNoteCommitment) {
       const incomingNote = await this.dbService.getNoteByCommitment(orderInfo.incomingNoteCommitment);
-      await this.dbService.updateNoteTransactionByWalletAndNoteCommitment(orderInfo.wallet, orderInfo.chainId, incomingNote.note, txHash);
+      await this.noteService.setNoteActive(this.noteDtoToNote(incomingNote), darkSwapContext, txHash);
       await this.noteJoinService.getCurrentBalanceNote(darkSwapContext, incomingNote.asset, [this.noteDtoToNote(incomingNote)]);
     }
     console.log('Post settlement for ', orderInfo.orderId);
